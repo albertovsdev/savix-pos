@@ -41,6 +41,7 @@ body { margin: 0; min-width: 320px; background: var(--savix-pos-fondo); }
 button, input { font: inherit; }
 button { cursor: pointer; }
 .savix-pos-marca { display: flex; align-items: center; gap: 12px; }
+.savix-pos-marca__logo { width: 42px; height: 42px; border-radius: 12px; object-fit: contain; background: var(--savix-pos-superficie); }
 .savix-pos-marca__sello { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px; color: #fff; background: var(--savix-pos-marca); font-size: 13px; font-weight: 800; letter-spacing: .08em; }
 .savix-pos-marca__nombre, .savix-pos-marca__subtitulo { margin: 0; }
 .savix-pos-marca__nombre { font-size: 14px; font-weight: 800; letter-spacing: .08em; }

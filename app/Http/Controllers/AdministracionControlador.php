@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -80,7 +81,10 @@ class AdministracionControlador extends Controller
             ->values();
 
         return Inertia::render('Administracion', [
-            'negocio' => $negocio->only(['id_negocio', 'nombre', 'nombre_comercial', 'clave_folio', 'rfc', 'correo', 'telefono', 'color_primario', 'color_secundario', 'color_acento', 'tema_predeterminado', 'porcentaje_iva', 'precios_incluyen_iva', 'ancho_ticket_mm', 'direccion_ticket', 'pie_ticket']),
+            'negocio' => [
+                ...$negocio->only(['id_negocio', 'nombre', 'nombre_comercial', 'clave_folio', 'rfc', 'correo', 'telefono', 'color_primario', 'color_secundario', 'color_acento', 'tema_predeterminado', 'porcentaje_iva', 'precios_incluyen_iva', 'ancho_ticket_mm', 'direccion_ticket', 'pie_ticket']),
+                'logo_url' => $negocio->ruta_logo ? Storage::disk('public')->url($negocio->ruta_logo) : null,
+            ],
             'sucursales' => $sucursales,
             'usuarios' => $usuarios,
             'roles' => DB::table('cat_roles')->where('activo', true)->orderBy('nombre')->get(['id_rol', 'codigo', 'nombre', 'descripcion']),
@@ -117,6 +121,17 @@ class AdministracionControlador extends Controller
             'direccion_ticket' => ['nullable', 'string', 'max:2000'],
             'pie_ticket' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        $archivo_logo = $datos['logo'] ?? null;
+        unset($datos['logo']);
+
+        if ($archivo_logo) {
+            if ($negocio->ruta_logo) {
+                Storage::disk('public')->delete($negocio->ruta_logo);
+            }
+
+            $datos['ruta_logo'] = $archivo_logo->store('logos', 'public');
+        }
 
         $anteriores = $negocio->only(array_keys($datos));
         $negocio->update([...$datos, 'clave_folio' => mb_strtoupper($datos['clave_folio'])]);

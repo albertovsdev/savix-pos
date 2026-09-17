@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Usuario;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdministracionTest extends TestCase
@@ -14,6 +16,7 @@ class AdministracionTest extends TestCase
 
     public function test_administrador_configura_negocio_sucursal_y_usuario(): void
     {
+        Storage::fake('public');
         $administrador = $this->configurarInstalacion();
 
         $this->get('/administracion')->assertOk();
@@ -34,9 +37,11 @@ class AdministracionTest extends TestCase
             'ancho_ticket_mm' => 80,
             'direccion_ticket' => 'Puebla, México',
             'pie_ticket' => 'Gracias por su visita',
+            'logo' => UploadedFile::fake()->createWithContent('medel.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL9xQAAAABJRU5ErkJggg==')),
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('negocios', ['nombre_comercial' => 'MEDEL Mariscos', 'tema_predeterminado' => 'claro']);
+        Storage::disk('public')->assertExists(DB::table('negocios')->value('ruta_logo'));
 
         $modulos = DB::table('cat_modulos')->pluck('id_modulo')->map(fn ($id) => (int) $id)->all();
 

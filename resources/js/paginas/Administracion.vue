@@ -12,7 +12,7 @@ const props = defineProps({
 const seccion = ref('negocio');
 const editandoSucursal = ref(null);
 const mensaje = computed(() => usePage().props.flash?.exito);
-const negocio = useForm({ ...props.negocio, precios_incluyen_iva: Boolean(props.negocio.precios_incluyen_iva) });
+const negocio = useForm({ ...props.negocio, logo: null, precios_incluyen_iva: Boolean(props.negocio.precios_incluyen_iva) });
 const sucursal = useForm({ clave: '', nombre: '', telefono: '', correo: '', direccion: '', activo: true, modulos: props.modulos.map(({ id_modulo }) => id_modulo) });
 const usuario = useForm({ nombre: '', nombre_usuario: '', correo: '', contrasena: '', contrasena_confirmation: '', pin: '', pin_confirmation: '', ref_sucursal: props.sucursales[0]?.id_sucursal || '', ref_rol: props.roles.find((rol) => rol.codigo === 'mesero')?.id_rol || '' });
 const permiso = useForm({ ref_usuario: '', ref_permiso: props.permisos[0]?.id_permiso || '', tipo_asignacion: 'permitir', ref_sucursal: '', motivo: '' });
@@ -29,7 +29,7 @@ const guardarPermiso = () => permiso.transform((datos) => ({ ...datos, ref_sucur
     <Head title="Administración" />
     <main class="savix-pos-administracion">
         <header class="savix-pos-administracion__encabezado">
-            <div class="savix-pos-marca"><span class="savix-pos-marca__sello">SI</span><div><p class="savix-pos-marca__nombre">{{ negocio.nombre_comercial }}</p><p class="savix-pos-marca__subtitulo">Administración de la operación</p></div></div>
+            <div class="savix-pos-marca"><img v-if="props.negocio.logo_url" :src="props.negocio.logo_url" class="savix-pos-marca__logo" alt="Logo del negocio"><span v-else class="savix-pos-marca__sello">SI</span><div><p class="savix-pos-marca__nombre">{{ negocio.nombre_comercial }}</p><p class="savix-pos-marca__subtitulo">Administración de la operación</p></div></div>
             <Link class="savix-pos-boton savix-pos-boton--secundario" href="/panel">Volver al panel</Link>
         </header>
         <div class="savix-pos-administracion__marco">
@@ -50,6 +50,7 @@ const guardarPermiso = () => permiso.transform((datos) => ({ ...datos, ref_sucur
                         <label class="savix-pos-campo"><span>Teléfono</span><input v-model="negocio.telefono" :disabled="!puede.configurar_negocio"></label>
                     </div>
                     <div class="savix-pos-seccion__subtitulo"><h2>Apariencia</h2><p>Se aplica al guardar.</p></div>
+                    <label class="savix-pos-campo"><span>Logo del negocio, opcional</span><input :disabled="!puede.configurar_negocio" accept="image/png,image/jpeg,image/webp" type="file" @change="(evento) => negocio.logo = evento.target.files[0]"><small>PNG, JPG o WebP, máximo 2 MB.</small></label>
                     <div class="savix-pos-cuadricula savix-pos-cuadricula--tres">
                         <label class="savix-pos-campo"><span>Color primario</span><input v-model="negocio.color_primario" :disabled="!puede.configurar_negocio" type="color"><small>{{ negocio.color_primario }}</small></label>
                         <label class="savix-pos-campo"><span>Color secundario</span><input v-model="negocio.color_secundario" :disabled="!puede.configurar_negocio" type="color"><small>{{ negocio.color_secundario }}</small></label>
