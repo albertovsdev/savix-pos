@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdministracionControlador;
 use App\Http\Controllers\AutenticacionControlador;
+use App\Http\Controllers\CatalogosControlador;
 use App\Http\Controllers\ConfiguracionInicialControlador;
 use App\Http\Controllers\PanelControlador;
 use App\Models\Negocio;
@@ -29,4 +30,13 @@ Route::middleware('auth')->prefix('administracion')->group(function (): void {
     Route::put('/sucursales/{sucursal}', [AdministracionControlador::class, 'actualizarSucursal'])->name('administracion.sucursales.actualizar');
     Route::post('/usuarios', [AdministracionControlador::class, 'crearUsuario'])->name('administracion.usuarios.crear');
     Route::put('/usuarios/{usuario}/permisos', [AdministracionControlador::class, 'guardarPermisoUsuario'])->name('administracion.usuarios.permisos.guardar');
+});
+
+Route::middleware('auth')->prefix('catalogos')->group(function (): void {
+    Route::get('/', [CatalogosControlador::class, 'mostrar'])->name('catalogos');
+    Route::post('/categorias', [CatalogosControlador::class, 'crearCategoria'])->name('catalogos.categorias.crear');
+    Route::put('/categorias/{categoria}/disponibilidad', [CatalogosControlador::class, 'actualizarDisponibilidadCategoria'])->name('catalogos.categorias.disponibilidad.actualizar');
+    Route::post('/areas-preparacion', [CatalogosControlador::class, 'crearAreaPreparacion'])->name('catalogos.areas-preparacion.crear');
+    Route::post('/productos', [CatalogosControlador::class, 'crearProducto'])->name('catalogos.productos.crear');
+    Route::put('/productos/{producto}/disponibilidad', [CatalogosControlador::class, 'actualizarDisponibilidadProducto'])->name('catalogos.productos.disponibilidad.actualizar');
 });

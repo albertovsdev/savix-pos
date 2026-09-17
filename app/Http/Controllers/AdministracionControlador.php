@@ -174,6 +174,28 @@ class AdministracionControlador extends Controller
                 ]);
             }
 
+            foreach (DB::table('categorias_productos')->where('ref_negocio', $negocio->id_negocio)->pluck('id_categoria_producto') as $id_categoria) {
+                DB::table('sucursales_categorias_productos')->insert([
+                    'ref_sucursal' => $sucursal->id_sucursal,
+                    'ref_categoria_producto' => $id_categoria,
+                    'habilitada' => true,
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+
+            foreach (DB::table('productos')->where('ref_negocio', $negocio->id_negocio)->pluck('id_producto') as $id_producto) {
+                DB::table('sucursales_productos')->insert([
+                    'ref_sucursal' => $sucursal->id_sucursal,
+                    'ref_producto' => $id_producto,
+                    'habilitado' => true,
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+
             return $sucursal;
         });
 

@@ -7,6 +7,7 @@ defineProps({
     sucursal: { type: Object, default: null },
     modulos: { type: Array, default: () => [] },
     puede_administrar: { type: Boolean, default: false },
+    puede_catalogos: { type: Boolean, default: false },
 });
 
 const formulario = useForm({});
@@ -27,6 +28,7 @@ const cerrarSesion = () => formulario.delete('/acceso');
             </div>
             <div class="savix-pos-panel__usuario">
                 <span>{{ usuario.nombre }}</span>
+                <Link v-if="puede_catalogos" class="savix-pos-boton savix-pos-boton--secundario" href="/catalogos">Catálogo</Link>
                 <Link v-if="puede_administrar" class="savix-pos-boton savix-pos-boton--secundario" href="/administracion">Administración</Link>
                 <button class="savix-pos-boton savix-pos-boton--secundario" @click="cerrarSesion">Salir</button>
             </div>

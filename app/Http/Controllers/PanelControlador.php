@@ -42,6 +42,7 @@ class PanelControlador extends Controller
         $puede_administrar = $this->servicio_permisos->tiene($usuario, 'negocio.ver')
             || $this->servicio_permisos->tiene($usuario, 'usuarios.ver')
             || $this->servicio_permisos->tiene($usuario, 'sucursales.ver');
+        $puede_catalogos = $this->servicio_permisos->tiene($usuario, 'catalogos.ver');
 
         return Inertia::render('Panel', [
             'usuario' => ['nombre' => $usuario->nombre, 'nombre_usuario' => $usuario->nombre_usuario],
@@ -49,6 +50,7 @@ class PanelControlador extends Controller
             'sucursal' => $sucursal,
             'modulos' => $modulos,
             'puede_administrar' => $puede_administrar,
+            'puede_catalogos' => $puede_catalogos,
         ]);
     }
 }
