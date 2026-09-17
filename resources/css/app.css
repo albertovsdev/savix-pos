@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+@source '../**/*.vue';
+
+:root {
+    --savix-pos-color-onyx: #0a0a0a;
+    --savix-pos-color-deep: #1a1a2e;
+    --savix-pos-color-violet: #6c63ff;
+    --savix-pos-color-violet-soft: #9993dd;
+    --savix-pos-fondo: #f8f7f4;
+    --savix-pos-superficie: #ffffff;
+    --savix-pos-texto: #1a1a22;
+    --savix-pos-texto-secundario: #5a5a66;
+    --savix-pos-borde: rgba(26, 26, 46, 0.12);
+    --savix-pos-marca: var(--savix-pos-color-violet);
+    --savix-pos-error: #b42318;
+    --savix-pos-radio-sm: 10px;
+    --savix-pos-radio-md: 14px;
+    --savix-pos-transicion: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--savix-pos-texto);
+    background: var(--savix-pos-fondo);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --savix-pos-fondo: #0f1018;
+        --savix-pos-superficie: #171722;
+        --savix-pos-texto: #f2f1f6;
+        --savix-pos-texto-secundario: #b4b3c0;
+        --savix-pos-borde: rgba(255, 255, 255, 0.12);
+    }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: var(--savix-pos-fondo); }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.savix-pos-marca { display: flex; align-items: center; gap: 12px; }
+.savix-pos-marca__sello { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px; color: #fff; background: var(--savix-pos-marca); font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+.savix-pos-marca__nombre, .savix-pos-marca__subtitulo { margin: 0; }
+.savix-pos-marca__nombre { font-size: 14px; font-weight: 800; letter-spacing: .08em; }
+.savix-pos-marca__subtitulo, .savix-pos-texto-secundario { color: var(--savix-pos-texto-secundario); font-size: 14px; line-height: 1.55; }
+.savix-pos-eyebrow { margin: 0 0 12px; color: var(--savix-pos-marca); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+.savix-pos-boton { min-height: 46px; border: 1px solid transparent; border-radius: var(--savix-pos-radio-sm); padding: 0 18px; font-weight: 750; transition: background-color var(--savix-pos-transicion), border-color var(--savix-pos-transicion), transform var(--savix-pos-transicion); }
+.savix-pos-boton:hover:not(:disabled) { transform: translateY(-1px); }
+.savix-pos-boton:focus-visible, .savix-pos-campo input:focus-visible { outline: 3px solid color-mix(in srgb, var(--savix-pos-marca) 35%, transparent); outline-offset: 2px; }
+.savix-pos-boton:disabled { cursor: wait; opacity: .65; }
+.savix-pos-boton--primario { color: #fff; background: var(--savix-pos-marca); }
+.savix-pos-boton--secundario { color: var(--savix-pos-texto); background: transparent; border-color: var(--savix-pos-borde); }
+.savix-pos-campo { display: grid; gap: 7px; color: var(--savix-pos-texto); font-size: 13px; font-weight: 700; }
+.savix-pos-campo input { width: 100%; min-height: 46px; border: 1px solid var(--savix-pos-borde); border-radius: var(--savix-pos-radio-sm); padding: 0 13px; color: inherit; background: var(--savix-pos-superficie); transition: border-color var(--savix-pos-transicion), box-shadow var(--savix-pos-transicion); }
+.savix-pos-campo input:focus { border-color: var(--savix-pos-marca); }
+.savix-pos-campo small { color: var(--savix-pos-texto-secundario); font-size: 12px; font-weight: 500; }
+.savix-pos-error { color: var(--savix-pos-error) !important; }
+.savix-pos-opcion { display: flex; align-items: center; gap: 9px; color: var(--savix-pos-texto-secundario); font-size: 13px; }
+
+.savix-pos-acceso { display: grid; min-height: 100svh; grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr); }
+.savix-pos-acceso__marca { display: flex; flex-direction: column; justify-content: space-between; padding: 44px clamp(32px, 7vw, 112px); color: #f2f1f6; background: var(--savix-pos-color-deep); }
+.savix-pos-acceso__mensaje { max-width: 590px; padding-bottom: 10vh; }
+.savix-pos-acceso__mensaje h1 { max-width: 12ch; margin: 0; font-size: 48px; line-height: 1.06; letter-spacing: -.04em; }
+.savix-pos-acceso__mensaje p:last-child { max-width: 48ch; margin: 20px 0 0; color: #c6c4db; line-height: 1.65; }
+.savix-pos-acceso__formulario { display: grid; place-items: center; padding: 36px; background: var(--savix-pos-fondo); }
+.savix-pos-formulario { display: grid; width: min(100%, 390px); gap: 22px; }
+.savix-pos-formulario h2 { margin: 0; font-size: 30px; letter-spacing: -.03em; }
+
+.savix-pos-inicial { min-height: 100svh; padding: 32px clamp(20px, 6vw, 96px) 64px; background: var(--savix-pos-fondo); }
+.savix-pos-inicial__encabezado { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding-bottom: 32px; border-bottom: 1px solid var(--savix-pos-borde); }
+.savix-pos-inicial__encabezado > p { max-width: 34ch; margin: 0; color: var(--savix-pos-texto-secundario); font-size: 14px; }
+.savix-pos-inicial__formulario { display: grid; max-width: 860px; margin: 50px auto 0; gap: 44px; }
+.savix-pos-inicial__formulario section h1, .savix-pos-inicial__formulario section h2 { margin: 0 0 24px; letter-spacing: -.03em; }
+.savix-pos-inicial__formulario section h1 { max-width: 14ch; font-size: 40px; line-height: 1.08; }
+.savix-pos-inicial__formulario section h2 { font-size: 24px; }
+.savix-pos-cuadricula { display: grid; gap: 18px; }
+.savix-pos-cuadricula--dos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.savix-pos-inicial__acciones { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-top: 24px; border-top: 1px solid var(--savix-pos-borde); }
+.savix-pos-inicial__acciones p { max-width: 42ch; margin: 0; color: var(--savix-pos-texto-secundario); font-size: 13px; }
+
+.savix-pos-panel { min-height: 100svh; background: var(--savix-pos-fondo); }
+.savix-pos-panel__encabezado { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 20px clamp(20px, 5vw, 72px); border-bottom: 1px solid var(--savix-pos-borde); background: var(--savix-pos-superficie); }
+.savix-pos-panel__usuario { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 700; }
+.savix-pos-panel__contenido { max-width: 920px; padding: clamp(44px, 9vw, 120px) clamp(20px, 9vw, 140px); }
+.savix-pos-panel__contenido h1 { max-width: 15ch; margin: 0; font-size: 48px; line-height: 1.05; letter-spacing: -.045em; }
+.savix-pos-panel__contenido > p:last-of-type { max-width: 56ch; margin: 20px 0 42px; }
+.savix-pos-panel__modulos { display: flex; flex-wrap: wrap; gap: 10px; }
+.savix-pos-modulo { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--savix-pos-borde); border-radius: 999px; padding: 10px 13px; background: var(--savix-pos-superficie); font-size: 13px; font-weight: 700; }
+.savix-pos-modulo__punto { width: 7px; height: 7px; border-radius: 50%; background: var(--savix-pos-marca); }
+
+@media (max-width: 760px) {
+    .savix-pos-acceso { grid-template-columns: 1fr; }
+    .savix-pos-acceso__marca { min-height: 260px; padding: 28px 24px; }
+    .savix-pos-acceso__mensaje { padding: 56px 0 0; }
+    .savix-pos-acceso__mensaje h1 { font-size: 36px; }
+    .savix-pos-acceso__formulario { padding: 42px 24px 56px; }
+    .savix-pos-inicial__encabezado, .savix-pos-inicial__acciones, .savix-pos-panel__encabezado { align-items: flex-start; flex-direction: column; }
+    .savix-pos-cuadricula--dos { grid-template-columns: 1fr; }
+    .savix-pos-inicial__formulario { margin-top: 38px; }
+    .savix-pos-panel__contenido h1 { font-size: 38px; }
+}
