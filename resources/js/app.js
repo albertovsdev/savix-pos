@@ -1,4 +1,5 @@
 import '../css/app.css';
+import '../css/tema-premium.css';
 import { createApp, h, watchEffect } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';

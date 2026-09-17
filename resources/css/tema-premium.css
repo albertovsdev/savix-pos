@@ -1,0 +1,157 @@
+/* Capa visual de producto: contraste alto y jerarquía operativa. */
+:root {
+    --savix-pos-fondo: oklch(0.975 0.006 285);
+    --savix-pos-superficie: oklch(0.998 0.003 285);
+    --savix-pos-superficie-secundaria: oklch(0.954 0.01 285);
+    --savix-pos-texto: oklch(0.22 0.018 285);
+    --savix-pos-texto-secundario: oklch(0.43 0.018 285);
+    --savix-pos-texto-tenue: oklch(0.55 0.014 285);
+    --savix-pos-borde: oklch(0.84 0.014 285 / .88);
+    --savix-pos-borde-fuerte: oklch(0.73 0.022 285);
+    --savix-pos-exito: oklch(0.58 0.14 152);
+    --savix-pos-advertencia: oklch(0.72 0.14 82);
+    --savix-pos-error: oklch(0.54 0.19 29);
+    --savix-pos-informacion: oklch(0.58 0.13 255);
+    --savix-pos-sombra-suave: 0 1px 2px oklch(0.2 0.02 285 / .06), 0 12px 28px oklch(0.2 0.02 285 / .07);
+    --savix-pos-sombra-elevada: 0 2px 5px oklch(0.2 0.02 285 / .1), 0 20px 40px oklch(0.2 0.02 285 / .12);
+    --savix-pos-marca-suave: color-mix(in oklch, var(--savix-pos-marca) 12%, transparent);
+    --savix-pos-marca-media: color-mix(in oklch, var(--savix-pos-marca) 22%, transparent);
+    --savix-pos-radial: 12px;
+    --savix-pos-transicion-rapida: 160ms cubic-bezier(.16, 1, .3, 1);
+}
+
+:root[data-tema='oscuro'] {
+    --savix-pos-fondo: oklch(0.16 0.014 285);
+    --savix-pos-superficie: oklch(0.205 0.016 285);
+    --savix-pos-superficie-secundaria: oklch(0.245 0.018 285);
+    --savix-pos-texto: oklch(0.95 0.008 285);
+    --savix-pos-texto-secundario: oklch(0.79 0.014 285);
+    --savix-pos-texto-tenue: oklch(0.64 0.017 285);
+    --savix-pos-borde: oklch(0.36 0.018 285 / .86);
+    --savix-pos-borde-fuerte: oklch(0.48 0.026 285);
+    --savix-pos-sombra-suave: 0 1px 2px oklch(0.05 0.02 285 / .35), 0 14px 30px oklch(0.05 0.02 285 / .28);
+    --savix-pos-sombra-elevada: 0 4px 8px oklch(0.05 0.02 285 / .4), 0 24px 44px oklch(0.05 0.02 285 / .38);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-tema='claro']) {
+        --savix-pos-fondo: oklch(0.16 0.014 285);
+        --savix-pos-superficie: oklch(0.205 0.016 285);
+        --savix-pos-superficie-secundaria: oklch(0.245 0.018 285);
+        --savix-pos-texto: oklch(0.95 0.008 285);
+        --savix-pos-texto-secundario: oklch(0.79 0.014 285);
+        --savix-pos-texto-tenue: oklch(0.64 0.017 285);
+        --savix-pos-borde: oklch(0.36 0.018 285 / .86);
+        --savix-pos-borde-fuerte: oklch(0.48 0.026 285);
+    }
+}
+
+html { background: var(--savix-pos-fondo); }
+body { color: var(--savix-pos-texto); background: var(--savix-pos-fondo); text-rendering: optimizeLegibility; }
+button, input, select, textarea { font-family: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.savix-pos-marca__sello {
+    color: oklch(0.985 0.004 285);
+    background: var(--savix-pos-marca);
+    box-shadow: 0 8px 18px color-mix(in oklch, var(--savix-pos-marca) 27%, transparent);
+}
+.savix-pos-marca__nombre { color: var(--savix-pos-texto); letter-spacing: .055em; }
+.savix-pos-marca__subtitulo { color: var(--savix-pos-texto-tenue); }
+
+.savix-pos-boton {
+    min-height: 42px;
+    border-radius: 10px;
+    letter-spacing: -.01em;
+    transition: transform var(--savix-pos-transicion-rapida), box-shadow var(--savix-pos-transicion-rapida), background-color var(--savix-pos-transicion-rapida), border-color var(--savix-pos-transicion-rapida);
+}
+.savix-pos-boton--primario {
+    color: oklch(0.985 0.004 285);
+    background: var(--savix-pos-marca);
+    box-shadow: 0 7px 16px color-mix(in oklch, var(--savix-pos-marca) 25%, transparent);
+}
+.savix-pos-boton--primario:hover:not(:disabled) { background: color-mix(in oklch, var(--savix-pos-marca) 89%, black); box-shadow: 0 10px 20px color-mix(in oklch, var(--savix-pos-marca) 31%, transparent); }
+.savix-pos-boton--secundario { color: var(--savix-pos-texto); border-color: var(--savix-pos-borde-fuerte); background: var(--savix-pos-superficie); }
+.savix-pos-boton--secundario:hover:not(:disabled) { border-color: var(--savix-pos-marca); background: var(--savix-pos-marca-suave); }
+.savix-pos-boton:focus-visible, .savix-pos-campo input:focus-visible, .savix-pos-campo select:focus-visible, .savix-pos-campo textarea:focus-visible { outline: 3px solid color-mix(in oklch, var(--savix-pos-marca) 42%, transparent); outline-offset: 2px; }
+
+.savix-pos-campo { color: var(--savix-pos-texto); font-size: 12px; letter-spacing: .01em; }
+.savix-pos-campo > span { color: var(--savix-pos-texto-secundario); }
+.savix-pos-campo input, .savix-pos-campo select, .savix-pos-campo textarea, textarea, select {
+    border-color: var(--savix-pos-borde);
+    color: var(--savix-pos-texto);
+    background: var(--savix-pos-superficie);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / .035);
+}
+.savix-pos-campo input:hover:not(:disabled), .savix-pos-campo select:hover:not(:disabled), .savix-pos-campo textarea:hover:not(:disabled) { border-color: var(--savix-pos-borde-fuerte); }
+.savix-pos-campo input:focus, .savix-pos-campo select:focus, .savix-pos-campo textarea:focus { border-color: var(--savix-pos-marca); box-shadow: 0 0 0 3px var(--savix-pos-marca-suave); }
+.savix-pos-campo input:disabled, .savix-pos-campo select:disabled, .savix-pos-campo textarea:disabled { color: var(--savix-pos-texto-tenue); background: var(--savix-pos-superficie-secundaria); cursor: not-allowed; }
+.savix-pos-campo small { color: var(--savix-pos-texto-tenue); }
+
+.savix-pos-acceso { background: var(--savix-pos-fondo); }
+.savix-pos-acceso__marca {
+    background: var(--savix-pos-color-deep);
+    box-shadow: inset -1px 0 0 oklch(1 0 0 / .12);
+}
+.savix-pos-acceso__marca .savix-pos-marca__nombre { color: oklch(0.97 0.006 285); }
+.savix-pos-acceso__marca .savix-pos-marca__subtitulo { color: oklch(0.81 0.014 285); }
+.savix-pos-acceso__mensaje { position: relative; }
+.savix-pos-acceso__mensaje::before { content: 'OPERACIÓN · CONTROL · CLARIDAD'; display: block; margin-bottom: 20px; color: color-mix(in oklch, var(--savix-pos-color-violet-soft) 85%, white); font-size: 10px; font-weight: 800; letter-spacing: .15em; }
+.savix-pos-acceso__mensaje h1 { max-width: 13ch; color: oklch(0.98 0.005 285); font-size: 52px; font-weight: 760; }
+.savix-pos-acceso__formulario { background: var(--savix-pos-fondo); }
+.savix-pos-formulario { gap: 24px; }
+.savix-pos-formulario h2 { color: var(--savix-pos-texto); font-size: 32px; font-weight: 760; }
+
+.savix-pos-inicial { background: var(--savix-pos-fondo); }
+.savix-pos-inicial__encabezado { padding-bottom: 24px; }
+.savix-pos-inicial__formulario { max-width: 900px; gap: 54px; }
+.savix-pos-inicial__formulario section { position: relative; }
+.savix-pos-inicial__formulario section h1, .savix-pos-inicial__formulario section h2 { color: var(--savix-pos-texto); font-weight: 760; }
+.savix-pos-inicial__formulario section h1 { font-size: 44px; }
+.savix-pos-inicial__acciones { padding-top: 28px; }
+
+.savix-pos-panel__encabezado, .savix-pos-administracion__encabezado {
+    background: var(--savix-pos-superficie);
+    box-shadow: 0 1px 0 var(--savix-pos-borde), 0 8px 24px oklch(0.18 0.02 285 / .035);
+}
+.savix-pos-panel__usuario { color: var(--savix-pos-texto-secundario); }
+.savix-pos-panel__contenido { max-width: 1080px; padding-top: clamp(52px, 9vw, 112px); }
+.savix-pos-panel__contenido h1 { color: var(--savix-pos-texto); max-width: 16ch; font-size: 54px; font-weight: 760; }
+.savix-pos-panel__contenido > p:last-of-type { color: var(--savix-pos-texto-secundario); font-size: 16px; }
+.savix-pos-panel__modulos { gap: 8px; max-width: 680px; }
+.savix-pos-modulo { border-color: var(--savix-pos-borde); border-radius: 10px; background: var(--savix-pos-superficie); box-shadow: 0 1px 0 oklch(1 0 0 / .03); }
+.savix-pos-modulo:hover { border-color: var(--savix-pos-borde-fuerte); background: var(--savix-pos-superficie-secundaria); }
+.savix-pos-modulo__punto { width: 8px; height: 8px; box-shadow: 0 0 0 3px var(--savix-pos-marca-suave); }
+
+.savix-pos-administracion__marco { background: var(--savix-pos-fondo); }
+.savix-pos-administracion__navegacion { background: var(--savix-pos-superficie-secundaria); }
+.savix-pos-navegacion__item { border: 1px solid transparent; color: var(--savix-pos-texto-secundario); }
+.savix-pos-navegacion__item:hover { color: var(--savix-pos-texto); border-color: var(--savix-pos-borde); background: var(--savix-pos-superficie); }
+.savix-pos-navegacion__item--activo { color: var(--savix-pos-texto); border-color: color-mix(in oklch, var(--savix-pos-marca) 38%, var(--savix-pos-borde)); background: var(--savix-pos-superficie); box-shadow: 0 3px 10px oklch(0.18 0.02 285 / .07); }
+.savix-pos-administracion__contenido { max-width: 1140px; }
+.savix-pos-seccion { gap: 34px; }
+.savix-pos-seccion__titulo { max-width: 700px; }
+.savix-pos-seccion__titulo h1 { color: var(--savix-pos-texto); font-size: 40px; font-weight: 760; }
+.savix-pos-seccion__titulo p:not(.savix-pos-eyebrow), .savix-pos-seccion__subtitulo p { color: var(--savix-pos-texto-secundario); }
+.savix-pos-seccion__subtitulo { border-color: var(--savix-pos-borde); }
+.savix-pos-seccion__subtitulo h2 { color: var(--savix-pos-texto); font-weight: 730; }
+.savix-pos-lista { border-color: var(--savix-pos-borde); }
+.savix-pos-lista__fila { border-color: var(--savix-pos-borde); }
+.savix-pos-lista__fila:hover { background: color-mix(in oklch, var(--savix-pos-superficie) 70%, var(--savix-pos-marca-suave)); }
+.savix-pos-lista__fila strong { color: var(--savix-pos-texto); }
+.savix-pos-lista__fila span { color: var(--savix-pos-texto-secundario); }
+.savix-pos-etiquetas span { border: 1px solid color-mix(in oklch, var(--savix-pos-marca) 18%, var(--savix-pos-borde)); color: var(--savix-pos-texto); background: var(--savix-pos-marca-suave); }
+.savix-pos-formulario-interno { border-color: var(--savix-pos-borde); border-radius: var(--savix-pos-radial); background: var(--savix-pos-superficie); box-shadow: var(--savix-pos-sombra-suave); }
+.savix-pos-seleccion label { color: var(--savix-pos-texto-secundario); }
+.savix-pos-notificacion { border-color: color-mix(in oklch, var(--savix-pos-exito) 40%, var(--savix-pos-borde)); color: var(--savix-pos-texto); background: color-mix(in oklch, var(--savix-pos-exito) 13%, var(--savix-pos-superficie)); }
+
+@media (max-width: 820px) {
+    .savix-pos-administracion__navegacion { background: var(--savix-pos-superficie-secundaria); }
+}
+
+@media (max-width: 760px) {
+    .savix-pos-acceso__marca { background: var(--savix-pos-color-deep); }
+    .savix-pos-acceso__mensaje h1 { font-size: 40px; }
+    .savix-pos-panel__contenido h1 { font-size: 42px; }
+    .savix-pos-inicial__formulario section h1 { font-size: 38px; }
+}
