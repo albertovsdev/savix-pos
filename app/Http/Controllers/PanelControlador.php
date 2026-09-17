@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Negocio;
+use App\Services\ServicioPermisos;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -10,6 +11,10 @@ use Inertia\Response;
 
 class PanelControlador extends Controller
 {
+    public function __construct(private readonly ServicioPermisos $servicio_permisos)
+    {
+    }
+
     public function mostrar(Request $solicitud): Response
     {
         $usuario = $solicitud->user();
@@ -34,11 +39,16 @@ class PanelControlador extends Controller
                 ->all()
             : [];
 
+        $puede_administrar = $this->servicio_permisos->tiene($usuario, 'negocio.ver')
+            || $this->servicio_permisos->tiene($usuario, 'usuarios.ver')
+            || $this->servicio_permisos->tiene($usuario, 'sucursales.ver');
+
         return Inertia::render('Panel', [
             'usuario' => ['nombre' => $usuario->nombre, 'nombre_usuario' => $usuario->nombre_usuario],
             'negocio' => $negocio ? ['nombre_comercial' => $negocio->nombre_comercial] : null,
             'sucursal' => $sucursal,
             'modulos' => $modulos,
+            'puede_administrar' => $puede_administrar,
         ]);
     }
 }

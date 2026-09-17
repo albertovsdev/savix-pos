@@ -82,7 +82,7 @@ class ConfiguracionInicialControlador extends Controller
             DB::table('usuarios_roles')->insert([
                 'ref_usuario' => $usuario->id_usuario,
                 'ref_rol' => $id_rol_admin,
-                'ref_sucursal' => $sucursal->id_sucursal,
+                'ref_sucursal' => null,
                 'activo' => true,
                 'creado_en' => now(),
                 'actualizado_en' => now(),
