@@ -9,6 +9,9 @@ const props = defineProps({
     categorias: { type: Array, default: () => [] },
     productos: { type: Array, default: () => [] },
     areas_preparacion: { type: Array, default: () => [] },
+    unidades_medida: { type: Array, default: () => [] },
+    insumos: { type: Array, default: () => [] },
+    recetas: { type: Array, default: () => [] },
     tipos_inventario: { type: Array, default: () => [] },
     puede_gestionar: { type: Boolean, default: false },
 });
@@ -21,10 +24,20 @@ const producto = useForm({
     ref_categoria_producto: '', codigo: '', nombre: '', descripcion: '', precio_compra: '0.00', precio_venta: '',
     tipo_inventario: 'sin_control', areas_preparacion: [], ref_sucursal: props.sucursal_seleccionada.id_sucursal,
 });
+const insumo = useForm({
+    codigo: '', nombre: '', ref_unidad_medida: props.unidades_medida[0]?.id_unidad_medida || '', costo_unitario: '0.0000',
+    existencia_actual: '0.0000', existencia_minima: '0.0000', ref_sucursal: props.sucursal_seleccionada.id_sucursal,
+});
+const receta = useForm({
+    ref_producto: '', ref_insumo: '', cantidad: '', ref_sucursal: props.sucursal_seleccionada.id_sucursal,
+});
+const recetasDelProducto = computed(() => props.recetas.filter((item) => String(item.ref_producto) === String(receta.ref_producto)));
 
 watch(() => props.sucursal_seleccionada.id_sucursal, (idSucursal) => {
     area.ref_sucursal = idSucursal;
     producto.ref_sucursal = idSucursal;
+    insumo.ref_sucursal = idSucursal;
+    receta.ref_sucursal = idSucursal;
     producto.areas_preparacion = [];
 });
 
@@ -32,6 +45,9 @@ const cambiarSucursal = (evento) => router.get('/catalogos', { ref_sucursal: eve
 const guardarCategoria = () => categoria.post('/catalogos/categorias', { preserveScroll: true, onSuccess: () => categoria.reset() });
 const guardarArea = () => area.post('/catalogos/areas-preparacion', { preserveScroll: true, onSuccess: () => area.reset('nombre', 'codigo', 'orden') });
 const guardarProducto = () => producto.transform((datos) => ({ ...datos, ref_categoria_producto: datos.ref_categoria_producto || null, codigo: datos.codigo || null })).post('/catalogos/productos', { preserveScroll: true, onSuccess: () => producto.reset('ref_categoria_producto', 'codigo', 'nombre', 'descripcion', 'precio_compra', 'precio_venta', 'tipo_inventario', 'areas_preparacion') });
+const guardarInsumo = () => insumo.transform((datos) => ({ ...datos, codigo: datos.codigo || null })).post('/catalogos/insumos', { preserveScroll: true, onSuccess: () => insumo.reset('codigo', 'nombre', 'costo_unitario', 'existencia_actual', 'existencia_minima') });
+const guardarReceta = () => receta.post('/catalogos/recetas', { preserveScroll: true, onSuccess: () => receta.reset('ref_insumo', 'cantidad') });
+const retirarInsumoReceta = (item) => router.delete(`/catalogos/recetas/${item.id_receta_producto}`, { data: { ref_sucursal: props.sucursal_seleccionada.id_sucursal }, preserveScroll: true });
 const alternarCategoria = (item) => router.put(`/catalogos/categorias/${item.id_categoria_producto}/disponibilidad`, { ref_sucursal: props.sucursal_seleccionada.id_sucursal, habilitada: !Boolean(item.habilitada) }, { preserveScroll: true });
 const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_producto}/disponibilidad`, { ref_sucursal: props.sucursal_seleccionada.id_sucursal, habilitado: !Boolean(item.habilitado) }, { preserveScroll: true });
 </script>
@@ -50,7 +66,7 @@ const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_pr
 
         <div class="savix-pos-administracion__marco">
             <nav class="savix-pos-administracion__navegacion" aria-label="Secciones de catálogo">
-                <button v-for="item in [['productos', 'Productos'], ['categorias', 'Categorías'], ['areas', 'Áreas de preparación']]" :key="item[0]" class="savix-pos-navegacion__item" :class="{ 'savix-pos-navegacion__item--activo': seccion === item[0] }" @click="seccion = item[0]">{{ item[1] }}</button>
+                <button v-for="item in [['productos', 'Productos'], ['categorias', 'Categorías'], ['areas', 'Áreas de preparación'], ['insumos', 'Insumos'], ['recetas', 'Recetas']]" :key="item[0]" class="savix-pos-navegacion__item" :class="{ 'savix-pos-navegacion__item--activo': seccion === item[0] }" @click="seccion = item[0]">{{ item[1] }}</button>
             </nav>
 
             <section class="savix-pos-administracion__contenido">
@@ -98,6 +114,38 @@ const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_pr
                     <div class="savix-pos-seccion__subtitulo"><h2>Áreas de preparación</h2><p>Solo aparecen las que este negocio decidió usar en {{ sucursal_seleccionada.nombre }}.</p></div>
                     <div class="savix-pos-lista"><article v-for="item in areas_preparacion" :key="item.id_area_preparacion" class="savix-pos-lista__fila"><div><strong>{{ item.nombre }}</strong><span>Código {{ item.codigo }} · {{ item.activo ? 'Activa' : 'Inactiva' }}</span></div></article><p v-if="!areas_preparacion.length" class="savix-pos-vacio">No hay áreas configuradas todavía.</p></div>
                     <form v-if="puede_gestionar" class="savix-pos-formulario-interno" @submit.prevent="guardarArea"><div class="savix-pos-seccion__subtitulo"><h2>Nueva área</h2><p>Ejemplos: Cocina, Barra o Postres.</p></div><div class="savix-pos-cuadricula savix-pos-cuadricula--tres"><label class="savix-pos-campo"><span>Nombre</span><input v-model="area.nombre" required></label><label class="savix-pos-campo"><span>Código, opcional</span><input v-model="area.codigo" maxlength="40"><small>Se genera si lo dejas vacío.</small></label><label class="savix-pos-campo"><span>Orden</span><input v-model="area.orden" type="number" min="0" required></label></div><footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="area.processing">{{ area.processing ? 'Guardando…' : 'Crear área' }}</button></footer></form>
+                </section>
+                <section v-if="seccion === 'recetas'" class="savix-pos-seccion">
+                    <div class="savix-pos-seccion__subtitulo"><h2>Recetas de productos</h2><p>Define la cantidad de cada insumo usada por una unidad vendida.</p></div>
+                    <form v-if="puede_gestionar" class="savix-pos-formulario-interno" @submit.prevent="guardarReceta">
+                        <div class="savix-pos-seccion__subtitulo"><h2>Agregar o actualizar insumo</h2><p>Si el insumo ya existe en la receta, su cantidad se reemplaza.</p></div>
+                        <div class="savix-pos-cuadricula savix-pos-cuadricula--tres">
+                            <label class="savix-pos-campo"><span>Producto</span><select v-model="receta.ref_producto" required><option disabled value="">Selecciona un producto</option><option v-for="item in productos" :key="item.id_producto" :value="item.id_producto">{{ item.nombre }}</option></select></label>
+                            <label class="savix-pos-campo"><span>Insumo</span><select v-model="receta.ref_insumo" required><option disabled value="">Selecciona un insumo</option><option v-for="item in insumos" :key="item.id_insumo" :value="item.id_insumo">{{ item.nombre }} ({{ item.abreviatura }})</option></select></label>
+                            <label class="savix-pos-campo"><span>Cantidad por producto</span><input v-model="receta.cantidad" type="number" min="0.0001" step="0.0001" required></label>
+                        </div>
+                        <footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="receta.processing">{{ receta.processing ? 'Guardando…' : 'Guardar en receta' }}</button></footer>
+                    </form>
+                    <div v-if="receta.ref_producto" class="savix-pos-lista">
+                        <article v-for="item in recetasDelProducto" :key="item.id_receta_producto" class="savix-pos-lista__fila"><div><strong>{{ item.insumo }}</strong><span>{{ item.cantidad }} {{ item.abreviatura }} por {{ item.producto }}</span></div><span>Se descontará al enviar a preparación.</span><button v-if="puede_gestionar" class="savix-pos-boton savix-pos-boton--secundario" type="button" @click="retirarInsumoReceta(item)">Retirar</button></article>
+                        <p v-if="!recetasDelProducto.length" class="savix-pos-vacio">Este producto todavía no tiene insumos en su receta.</p>
+                    </div>
+                    <p v-else class="savix-pos-vacio">Selecciona un producto para consultar su receta.</p>
+                </section>
+
+                <section v-if="seccion === 'insumos'" class="savix-pos-seccion">
+                    <div class="savix-pos-seccion__subtitulo"><h2>Insumos de {{ sucursal_seleccionada.nombre }}</h2><p>La existencia pertenece a esta sucursal.</p></div>
+                    <div class="savix-pos-lista">
+                        <article v-for="item in insumos" :key="item.id_insumo" class="savix-pos-lista__fila"><div><strong>{{ item.nombre }}</strong><span>{{ item.codigo || 'Sin código' }} · {{ item.unidad_medida }} ({{ item.abreviatura }})</span></div><div><span>Existencia: {{ Number(item.existencia_actual).toFixed(4) }} {{ item.abreviatura }}</span><span>Mínimo: {{ Number(item.existencia_minima).toFixed(4) }} {{ item.abreviatura }}</span></div><span>Costo unitario: ${{ Number(item.costo_unitario).toFixed(4) }}</span></article>
+                        <p v-if="!insumos.length" class="savix-pos-vacio">Aún no hay insumos. Registra los ingredientes que usarán tus recetas.</p>
+                    </div>
+                    <form v-if="puede_gestionar" class="savix-pos-formulario-interno" @submit.prevent="guardarInsumo">
+                        <div class="savix-pos-seccion__subtitulo"><h2>Nuevo insumo</h2><p>Indica existencias iniciales para {{ sucursal_seleccionada.nombre }}.</p></div>
+                        <div class="savix-pos-cuadricula savix-pos-cuadricula--dos">
+                            <label class="savix-pos-campo"><span>Nombre</span><input v-model="insumo.nombre" required></label><label class="savix-pos-campo"><span>Código interno, opcional</span><input v-model="insumo.codigo" maxlength="80"></label><label class="savix-pos-campo"><span>Unidad de medida</span><select v-model="insumo.ref_unidad_medida" required><option v-for="item in unidades_medida" :key="item.id_unidad_medida" :value="item.id_unidad_medida">{{ item.nombre }} ({{ item.abreviatura }})</option></select></label><label class="savix-pos-campo"><span>Costo unitario (MXN)</span><input v-model="insumo.costo_unitario" type="number" min="0" step="0.0001" required></label><label class="savix-pos-campo"><span>Existencia inicial</span><input v-model="insumo.existencia_actual" type="number" min="0" step="0.0001" required></label><label class="savix-pos-campo"><span>Existencia mínima</span><input v-model="insumo.existencia_minima" type="number" min="0" step="0.0001" required></label>
+                        </div>
+                        <footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="insumo.processing">{{ insumo.processing ? 'Guardando…' : 'Crear insumo' }}</button></footer>
+                    </form>
                 </section>
             </section>
         </div>

@@ -196,6 +196,18 @@ class AdministracionControlador extends Controller
                 ]);
             }
 
+            foreach (DB::table('insumos')->where('ref_negocio', $negocio->id_negocio)->pluck('id_insumo') as $id_insumo) {
+                DB::table('sucursales_insumos')->insert([
+                    'ref_sucursal' => $sucursal->id_sucursal,
+                    'ref_insumo' => $id_insumo,
+                    'existencia_actual' => 0,
+                    'existencia_minima' => 0,
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+
             return $sucursal;
         });
 

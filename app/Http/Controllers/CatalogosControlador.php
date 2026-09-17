@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AreaPreparacion;
 use App\Models\CategoriaProducto;
+use App\Models\Insumo;
 use App\Models\Negocio;
 use App\Models\Producto;
+use App\Models\RecetaProducto;
 use App\Models\Sucursal;
 use App\Services\ServicioPermisos;
 use Illuminate\Http\RedirectResponse;
@@ -80,13 +82,48 @@ class CatalogosControlador extends Controller
             return $producto;
         });
 
+        $insumos = DB::table('insumos')
+            ->join('cat_unidades_medida', 'cat_unidades_medida.id_unidad_medida', '=', 'insumos.ref_unidad_medida')
+            ->leftJoin('sucursales_insumos', function ($union) use ($sucursal): void {
+                $union->on('sucursales_insumos.ref_insumo', '=', 'insumos.id_insumo')
+                    ->where('sucursales_insumos.ref_sucursal', $sucursal->id_sucursal);
+            })
+            ->where('insumos.ref_negocio', $negocio->id_negocio)
+            ->where('insumos.activo', true)
+            ->orderBy('insumos.nombre')
+            ->select([
+                'insumos.id_insumo', 'insumos.codigo', 'insumos.nombre', 'insumos.costo_unitario',
+                'cat_unidades_medida.nombre as unidad_medida', 'cat_unidades_medida.abreviatura',
+                DB::raw('COALESCE(sucursales_insumos.existencia_actual, 0) as existencia_actual'),
+                DB::raw('COALESCE(sucursales_insumos.existencia_minima, 0) as existencia_minima'),
+            ])
+            ->get();
+
+        $recetas = DB::table('recetas_productos')
+            ->join('productos', 'productos.id_producto', '=', 'recetas_productos.ref_producto')
+            ->join('insumos', 'insumos.id_insumo', '=', 'recetas_productos.ref_insumo')
+            ->join('cat_unidades_medida', 'cat_unidades_medida.id_unidad_medida', '=', 'insumos.ref_unidad_medida')
+            ->where('productos.ref_negocio', $negocio->id_negocio)
+            ->where('recetas_productos.activo', true)
+            ->orderBy('productos.nombre')
+            ->orderBy('insumos.nombre')
+            ->select([
+                'recetas_productos.id_receta_producto', 'recetas_productos.ref_producto', 'recetas_productos.ref_insumo',
+                'recetas_productos.cantidad', 'productos.nombre as producto', 'insumos.nombre as insumo',
+                'cat_unidades_medida.abreviatura',
+            ])
+            ->get();
+
         return Inertia::render('Catalogos', [
             'negocio' => $negocio->only(['id_negocio', 'nombre_comercial']),
             'sucursal_seleccionada' => $sucursal->only(['id_sucursal', 'clave', 'nombre']),
             'sucursales' => Sucursal::query()->where('ref_negocio', $negocio->id_negocio)->where('activo', true)->orderBy('nombre')->get(['id_sucursal', 'clave', 'nombre']),
             'categorias' => $categorias,
             'productos' => $productos,
-            'areas_preparacion' => AreaPreparacion::query()->where('ref_sucursal', $sucursal->id_sucursal)->where('activo', true)->orderBy('orden')->orderBy('nombre')->get(['id_area_preparacion', 'nombre', 'codigo']),
+            'areas_preparacion' => AreaPreparacion::query()->where('ref_sucursal', $sucursal->id_sucursal)->where('activo', true)->orderBy('orden')->orderBy('nombre')->get(['id_area_preparacion', 'nombre', 'codigo', 'activo']),
+            'unidades_medida' => DB::table('cat_unidades_medida')->where('activo', true)->orderBy('nombre')->get(['id_unidad_medida', 'nombre', 'abreviatura']),
+            'insumos' => $insumos,
+            'recetas' => $recetas,
             'tipos_inventario' => [
                 ['valor' => 'sin_control', 'nombre' => 'Sin control de inventario'],
                 ['valor' => 'unidad', 'nombre' => 'Descuenta unidades'],
@@ -226,6 +263,89 @@ class CatalogosControlador extends Controller
         $this->registrar($solicitud, 'crear_producto', 'productos', $producto->id_producto, collect($datos)->except('areas_preparacion')->all(), $sucursal->id_sucursal);
 
         return back()->with('exito', 'El producto fue creado y está disponible en las sucursales.');
+    }
+
+    public function crearInsumo(Request $solicitud): RedirectResponse
+    {
+        $negocio = Negocio::query()->firstOrFail();
+        $sucursal = $this->sucursalSeleccionada($solicitud, $negocio);
+        $this->autorizar($solicitud, 'catalogos.gestionar', $sucursal->id_sucursal);
+
+        $datos = $solicitud->validate([
+            'codigo' => ['nullable', 'alpha_dash', 'max:80', Rule::unique('insumos')->where('ref_negocio', $negocio->id_negocio)],
+            'nombre' => ['required', 'string', 'max:160'],
+            'ref_unidad_medida' => ['required', 'exists:cat_unidades_medida,id_unidad_medida'],
+            'costo_unitario' => ['required', 'numeric', 'min:0', 'max:99999999.9999'],
+            'existencia_actual' => ['required', 'numeric', 'min:0', 'max:99999999.9999'],
+            'existencia_minima' => ['required', 'numeric', 'min:0', 'max:99999999.9999'],
+        ]);
+
+        $insumo = DB::transaction(function () use ($datos, $negocio, $sucursal): Insumo {
+            $insumo = Insumo::query()->create([
+                ...collect($datos)->except(['existencia_actual', 'existencia_minima'])->all(),
+                'ref_negocio' => $negocio->id_negocio,
+                'codigo' => $datos['codigo'] ?? null,
+                'activo' => true,
+            ]);
+
+            foreach (Sucursal::query()->where('ref_negocio', $negocio->id_negocio)->pluck('id_sucursal') as $id_sucursal) {
+                DB::table('sucursales_insumos')->insert([
+                    'ref_sucursal' => $id_sucursal,
+                    'ref_insumo' => $insumo->id_insumo,
+                    'existencia_actual' => $id_sucursal === $sucursal->id_sucursal ? $datos['existencia_actual'] : 0,
+                    'existencia_minima' => $id_sucursal === $sucursal->id_sucursal ? $datos['existencia_minima'] : 0,
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+
+            return $insumo;
+        });
+
+        $this->registrar($solicitud, 'crear_insumo', 'insumos', $insumo->id_insumo, $datos, $sucursal->id_sucursal);
+
+        return back()->with('exito', 'El insumo fue creado con existencias iniciales para esta sucursal.');
+    }
+
+    public function guardarReceta(Request $solicitud): RedirectResponse
+    {
+        $negocio = Negocio::query()->firstOrFail();
+        $sucursal = $this->sucursalSeleccionada($solicitud, $negocio);
+        $this->autorizar($solicitud, 'catalogos.gestionar', $sucursal->id_sucursal);
+
+        $datos = $solicitud->validate([
+            'ref_producto' => ['required', Rule::exists('productos', 'id_producto')->where('ref_negocio', $negocio->id_negocio)],
+            'ref_insumo' => ['required', Rule::exists('insumos', 'id_insumo')->where('ref_negocio', $negocio->id_negocio)],
+            'cantidad' => ['required', 'numeric', 'gt:0', 'max:99999999.9999'],
+        ]);
+
+        $receta = RecetaProducto::query()->updateOrCreate(
+            ['ref_producto' => $datos['ref_producto'], 'ref_insumo' => $datos['ref_insumo']],
+            ['cantidad' => $datos['cantidad'], 'activo' => true],
+        );
+
+        $this->registrar($solicitud, 'guardar_insumo_receta', 'recetas_productos', $receta->id_receta_producto, $datos, $sucursal->id_sucursal);
+
+        return back()->with('exito', 'El insumo fue agregado a la receta.');
+    }
+
+    public function eliminarReceta(Request $solicitud, RecetaProducto $receta): RedirectResponse
+    {
+        $negocio = Negocio::query()->firstOrFail();
+        $sucursal = $this->sucursalSeleccionada($solicitud, $negocio);
+        $this->autorizar($solicitud, 'catalogos.gestionar', $sucursal->id_sucursal);
+
+        $pertenece = DB::table('productos')
+            ->where('id_producto', $receta->ref_producto)
+            ->where('ref_negocio', $negocio->id_negocio)
+            ->exists();
+        abort_unless($pertenece, 404);
+
+        $receta->update(['activo' => false]);
+        $this->registrar($solicitud, 'eliminar_insumo_receta', 'recetas_productos', $receta->id_receta_producto, [], $sucursal->id_sucursal);
+
+        return back()->with('exito', 'El insumo fue retirado de la receta.');
     }
 
     public function actualizarDisponibilidadCategoria(Request $solicitud, CategoriaProducto $categoria): RedirectResponse

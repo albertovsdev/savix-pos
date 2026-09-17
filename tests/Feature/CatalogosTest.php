@@ -49,6 +49,25 @@ class CatalogosTest extends TestCase
         $this->assertDatabaseCount('sucursales_productos', 2);
         $this->assertDatabaseHas('sucursales_productos_areas_preparacion', ['ref_area_preparacion' => $id_area]);
 
+        $id_unidad = DB::table('cat_unidades_medida')->where('codigo', 'gramo')->value('id_unidad_medida');
+        $this->post('/catalogos/insumos', [
+            'ref_sucursal' => $id_matriz, 'codigo' => 'QUESILLO', 'nombre' => 'Quesillo', 'ref_unidad_medida' => $id_unidad,
+            'costo_unitario' => '0.1800', 'existencia_actual' => '5000.0000', 'existencia_minima' => '500.0000',
+        ])->assertSessionHasNoErrors();
+        $id_insumo = DB::table('insumos')->where('codigo', 'QUESILLO')->value('id_insumo');
+        $this->assertDatabaseCount('sucursales_insumos', 2);
+        $this->assertDatabaseHas('sucursales_insumos', ['ref_sucursal' => $id_matriz, 'ref_insumo' => $id_insumo, 'existencia_actual' => 5000]);
+        $this->assertDatabaseHas('sucursales_insumos', ['ref_sucursal' => $id_norte, 'ref_insumo' => $id_insumo, 'existencia_actual' => 0]);
+
+        $this->post('/catalogos/recetas', [
+            'ref_sucursal' => $id_matriz, 'ref_producto' => $id_producto, 'ref_insumo' => $id_insumo, 'cantidad' => '60.0000',
+        ])->assertSessionHasNoErrors();
+        $id_receta = DB::table('recetas_productos')->where('ref_producto', $id_producto)->where('ref_insumo', $id_insumo)->value('id_receta_producto');
+        $this->assertDatabaseHas('recetas_productos', ['id_receta_producto' => $id_receta, 'cantidad' => 60, 'activo' => true]);
+
+        $this->delete("/catalogos/recetas/{$id_receta}", ['ref_sucursal' => $id_matriz])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('recetas_productos', ['id_receta_producto' => $id_receta, 'activo' => false]);
+
         $this->put("/catalogos/productos/{$id_producto}/disponibilidad", [
             'ref_sucursal' => $id_norte, 'habilitado' => false,
         ])->assertSessionHasNoErrors();
@@ -71,6 +90,13 @@ class CatalogosTest extends TestCase
         ])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('productos', ['nombre' => 'Tostada camaron']);
 
+        $id_unidad = DB::table('cat_unidades_medida')->where('codigo', 'pieza')->value('id_unidad_medida');
+        $this->post('/catalogos/insumos', [
+            'ref_sucursal' => $id_matriz, 'nombre' => 'Tostada base', 'ref_unidad_medida' => $id_unidad,
+            'costo_unitario' => '5.0000', 'existencia_actual' => '30.0000', 'existencia_minima' => '5.0000',
+        ])->assertSessionHasNoErrors();
+        $id_insumo = DB::table('insumos')->where('nombre', 'Tostada base')->value('id_insumo');
+
         $this->post('/administracion/sucursales', [
             'clave' => 'SO', 'nombre' => 'Sucursal Oriente', 'telefono' => null, 'correo' => null, 'direccion' => null,
             'modulos' => DB::table('cat_modulos')->pluck('id_modulo')->all(),
@@ -79,6 +105,7 @@ class CatalogosTest extends TestCase
         $id_oriente = DB::table('sucursales')->where('clave', 'SO')->value('id_sucursal');
         $this->assertDatabaseHas('sucursales_categorias_productos', ['ref_sucursal' => $id_oriente, 'ref_categoria_producto' => $id_categoria, 'habilitada' => true]);
         $this->assertDatabaseHas('sucursales_productos', ['ref_sucursal' => $id_oriente, 'habilitado' => true]);
+        $this->assertDatabaseHas('sucursales_insumos', ['ref_sucursal' => $id_oriente, 'ref_insumo' => $id_insumo, 'existencia_actual' => 0]);
     }
 
     private function configurarInstalacion(): Usuario
