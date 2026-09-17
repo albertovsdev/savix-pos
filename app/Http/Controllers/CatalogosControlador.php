@@ -81,6 +81,7 @@ class CatalogosControlador extends Controller
         });
 
         return Inertia::render('Catalogos', [
+            'negocio' => $negocio->only(['id_negocio', 'nombre_comercial']),
             'sucursal_seleccionada' => $sucursal->only(['id_sucursal', 'clave', 'nombre']),
             'sucursales' => Sucursal::query()->where('ref_negocio', $negocio->id_negocio)->where('activo', true)->orderBy('nombre')->get(['id_sucursal', 'clave', 'nombre']),
             'categorias' => $categorias,

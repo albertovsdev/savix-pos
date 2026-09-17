@@ -6,6 +6,7 @@ use App\Models\Usuario;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class CatalogosTest extends TestCase
@@ -24,7 +25,10 @@ class CatalogosTest extends TestCase
         ]);
         $id_norte = DB::table('sucursales')->where('clave', 'SN')->value('id_sucursal');
 
-        $this->get('/catalogos')->assertOk();
+        $this->get('/catalogos')->assertInertia(fn (Assert $pagina) => $pagina
+            ->component('Catalogos', false)
+            ->has('negocio')
+        );
         $this->post('/catalogos/categorias', ['nombre' => 'Bebidas', 'descripcion' => 'Bebidas frias y preparadas', 'orden' => 10])->assertSessionHasNoErrors();
 
         $id_categoria = DB::table('categorias_productos')->where('nombre', 'Bebidas')->value('id_categoria_producto');
