@@ -40,6 +40,9 @@ Route::middleware('auth')->prefix('catalogos')->group(function (): void {
     Route::post('/insumos', [CatalogosControlador::class, 'crearInsumo'])->name('catalogos.insumos.crear');
     Route::post('/recetas', [CatalogosControlador::class, 'guardarReceta'])->name('catalogos.recetas.guardar');
     Route::delete('/recetas/{receta}', [CatalogosControlador::class, 'eliminarReceta'])->name('catalogos.recetas.eliminar');
+    Route::post('/grupos-modificadores', [CatalogosControlador::class, 'crearGrupoModificador'])->name('catalogos.grupos-modificadores.crear');
+    Route::post('/opciones-modificadores', [CatalogosControlador::class, 'crearOpcionModificador'])->name('catalogos.opciones-modificadores.crear');
+    Route::delete('/opciones-modificadores/{opcion}', [CatalogosControlador::class, 'eliminarOpcionModificador'])->name('catalogos.opciones-modificadores.eliminar');
     Route::post('/productos', [CatalogosControlador::class, 'crearProducto'])->name('catalogos.productos.crear');
     Route::put('/productos/{producto}/disponibilidad', [CatalogosControlador::class, 'actualizarDisponibilidadProducto'])->name('catalogos.productos.disponibilidad.actualizar');
 });

@@ -65,6 +65,29 @@ class CatalogosTest extends TestCase
         $id_receta = DB::table('recetas_productos')->where('ref_producto', $id_producto)->where('ref_insumo', $id_insumo)->value('id_receta_producto');
         $this->assertDatabaseHas('recetas_productos', ['id_receta_producto' => $id_receta, 'cantidad' => 60, 'activo' => true]);
 
+        $this->post('/catalogos/grupos-modificadores', [
+            'ref_sucursal' => $id_matriz, 'ref_producto' => $id_producto, 'nombre' => 'Extras', 'minimo_selecciones' => 0, 'maximo_selecciones' => 3,
+        ])->assertSessionHasNoErrors();
+        $id_grupo = DB::table('grupos_modificadores_productos')->where('nombre', 'Extras')->value('id_grupo_modificador_producto');
+
+        $this->post('/catalogos/opciones-modificadores', [
+            'ref_sucursal' => $id_matriz, 'ref_grupo_modificador_producto' => $id_grupo, 'nombre' => 'Sin quesillo',
+            'tipo_modificacion' => 'eliminar_insumo', 'ref_insumo' => $id_insumo, 'precio_adicional' => '0.00',
+        ])->assertSessionHasNoErrors();
+        $this->post('/catalogos/opciones-modificadores', [
+            'ref_sucursal' => $id_matriz, 'ref_grupo_modificador_producto' => $id_grupo, 'nombre' => 'Extra quesillo',
+            'tipo_modificacion' => 'agregar_insumo', 'ref_insumo' => $id_insumo, 'cantidad_insumo' => '30.0000', 'precio_adicional' => '15.00',
+        ])->assertSessionHasNoErrors();
+        $this->post('/catalogos/opciones-modificadores', [
+            'ref_sucursal' => $id_matriz, 'ref_grupo_modificador_producto' => $id_grupo, 'nombre' => 'Bien preparado',
+            'tipo_modificacion' => 'nota', 'precio_adicional' => '0.00',
+        ])->assertSessionHasNoErrors();
+
+        $id_opcion = DB::table('opciones_modificadores_productos')->where('nombre', 'Extra quesillo')->value('id_opcion_modificador_producto');
+        $this->assertDatabaseHas('opciones_modificadores_productos', ['id_opcion_modificador_producto' => $id_opcion, 'cantidad_insumo' => 30, 'precio_adicional' => 15, 'activo' => true]);
+        $this->delete("/catalogos/opciones-modificadores/{$id_opcion}", ['ref_sucursal' => $id_matriz])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('opciones_modificadores_productos', ['id_opcion_modificador_producto' => $id_opcion, 'activo' => false]);
+
         $this->delete("/catalogos/recetas/{$id_receta}", ['ref_sucursal' => $id_matriz])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('recetas_productos', ['id_receta_producto' => $id_receta, 'activo' => false]);
 

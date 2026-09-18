@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\AreaPreparacion;
 use App\Models\CategoriaProducto;
+use App\Models\GrupoModificadorProducto;
 use App\Models\Insumo;
 use App\Models\Negocio;
+use App\Models\OpcionModificadorProducto;
 use App\Models\Producto;
 use App\Models\RecetaProducto;
 use App\Models\Sucursal;
@@ -114,6 +116,37 @@ class CatalogosControlador extends Controller
             ])
             ->get();
 
+        $grupos_modificadores = DB::table('grupos_modificadores_productos')
+            ->join('productos', 'productos.id_producto', '=', 'grupos_modificadores_productos.ref_producto')
+            ->where('productos.ref_negocio', $negocio->id_negocio)
+            ->where('grupos_modificadores_productos.activo', true)
+            ->orderBy('productos.nombre')
+            ->orderBy('grupos_modificadores_productos.nombre')
+            ->select([
+                'grupos_modificadores_productos.id_grupo_modificador_producto', 'grupos_modificadores_productos.ref_producto',
+                'grupos_modificadores_productos.nombre', 'grupos_modificadores_productos.minimo_selecciones',
+                'grupos_modificadores_productos.maximo_selecciones', 'productos.nombre as producto',
+            ])
+            ->get();
+
+        $opciones_modificadores = DB::table('opciones_modificadores_productos')
+            ->join('grupos_modificadores_productos', 'grupos_modificadores_productos.id_grupo_modificador_producto', '=', 'opciones_modificadores_productos.ref_grupo_modificador_producto')
+            ->leftJoin('insumos', 'insumos.id_insumo', '=', 'opciones_modificadores_productos.ref_insumo')
+            ->leftJoin('cat_unidades_medida', 'cat_unidades_medida.id_unidad_medida', '=', 'insumos.ref_unidad_medida')
+            ->join('productos', 'productos.id_producto', '=', 'grupos_modificadores_productos.ref_producto')
+            ->where('productos.ref_negocio', $negocio->id_negocio)
+            ->where('opciones_modificadores_productos.activo', true)
+            ->orderBy('opciones_modificadores_productos.nombre')
+            ->select([
+                'opciones_modificadores_productos.id_opcion_modificador_producto',
+                'opciones_modificadores_productos.ref_grupo_modificador_producto',
+                'opciones_modificadores_productos.ref_insumo', 'opciones_modificadores_productos.nombre',
+                'opciones_modificadores_productos.tipo_modificacion', 'opciones_modificadores_productos.cantidad_insumo',
+                'opciones_modificadores_productos.precio_adicional', 'insumos.nombre as insumo',
+                'cat_unidades_medida.abreviatura',
+            ])
+            ->get();
+
         return Inertia::render('Catalogos', [
             'negocio' => $negocio->only(['id_negocio', 'nombre_comercial']),
             'sucursal_seleccionada' => $sucursal->only(['id_sucursal', 'clave', 'nombre']),
@@ -124,6 +157,8 @@ class CatalogosControlador extends Controller
             'unidades_medida' => DB::table('cat_unidades_medida')->where('activo', true)->orderBy('nombre')->get(['id_unidad_medida', 'nombre', 'abreviatura']),
             'insumos' => $insumos,
             'recetas' => $recetas,
+            'grupos_modificadores' => $grupos_modificadores,
+            'opciones_modificadores' => $opciones_modificadores,
             'tipos_inventario' => [
                 ['valor' => 'sin_control', 'nombre' => 'Sin control de inventario'],
                 ['valor' => 'unidad', 'nombre' => 'Descuenta unidades'],
@@ -346,6 +381,83 @@ class CatalogosControlador extends Controller
         $this->registrar($solicitud, 'eliminar_insumo_receta', 'recetas_productos', $receta->id_receta_producto, [], $sucursal->id_sucursal);
 
         return back()->with('exito', 'El insumo fue retirado de la receta.');
+    }
+
+    public function crearGrupoModificador(Request $solicitud): RedirectResponse
+    {
+        $negocio = Negocio::query()->firstOrFail();
+        $sucursal = $this->sucursalSeleccionada($solicitud, $negocio);
+        $this->autorizar($solicitud, 'catalogos.gestionar', $sucursal->id_sucursal);
+
+        $datos = $solicitud->validate([
+            'ref_producto' => ['required', Rule::exists('productos', 'id_producto')->where('ref_negocio', $negocio->id_negocio)],
+            'nombre' => ['required', 'string', 'max:120'],
+            'minimo_selecciones' => ['required', 'integer', 'min:0', 'max:50'],
+            'maximo_selecciones' => ['required', 'integer', 'min:1', 'max:50'],
+        ]);
+        abort_unless($datos['minimo_selecciones'] <= $datos['maximo_selecciones'], 422);
+
+        $grupo = GrupoModificadorProducto::query()->create([...$datos, 'activo' => true]);
+        $this->registrar($solicitud, 'crear_grupo_modificador', 'grupos_modificadores_productos', $grupo->id_grupo_modificador_producto, $datos, $sucursal->id_sucursal);
+
+        return back()->with('exito', 'El grupo de opciones fue creado.');
+    }
+
+    public function crearOpcionModificador(Request $solicitud): RedirectResponse
+    {
+        $negocio = Negocio::query()->firstOrFail();
+        $sucursal = $this->sucursalSeleccionada($solicitud, $negocio);
+        $this->autorizar($solicitud, 'catalogos.gestionar', $sucursal->id_sucursal);
+
+        $datos = $solicitud->validate([
+            'ref_grupo_modificador_producto' => ['required', 'exists:grupos_modificadores_productos,id_grupo_modificador_producto'],
+            'nombre' => ['required', 'string', 'max:120'],
+            'tipo_modificacion' => ['required', Rule::in(['eliminar_insumo', 'agregar_insumo', 'nota'])],
+            'ref_insumo' => ['nullable', Rule::exists('insumos', 'id_insumo')->where('ref_negocio', $negocio->id_negocio)],
+            'cantidad_insumo' => ['nullable', 'numeric', 'min:0', 'max:99999999.9999'],
+            'precio_adicional' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
+        ]);
+
+        $grupo = DB::table('grupos_modificadores_productos')
+            ->join('productos', 'productos.id_producto', '=', 'grupos_modificadores_productos.ref_producto')
+            ->where('grupos_modificadores_productos.id_grupo_modificador_producto', $datos['ref_grupo_modificador_producto'])
+            ->where('productos.ref_negocio', $negocio->id_negocio)
+            ->first();
+        abort_unless($grupo, 404);
+
+        $requiere_insumo = in_array($datos['tipo_modificacion'], ['eliminar_insumo', 'agregar_insumo'], true);
+        abort_unless(!$requiere_insumo || !empty($datos['ref_insumo']), 422);
+        abort_unless($datos['tipo_modificacion'] !== 'agregar_insumo' || (float) ($datos['cantidad_insumo'] ?? 0) > 0, 422);
+
+        $opcion = OpcionModificadorProducto::query()->create([
+            ...$datos,
+            'ref_insumo' => $datos['ref_insumo'] ?? null,
+            'cantidad_insumo' => $datos['cantidad_insumo'] ?? 0,
+            'activo' => true,
+        ]);
+        $this->registrar($solicitud, 'crear_opcion_modificador', 'opciones_modificadores_productos', $opcion->id_opcion_modificador_producto, $datos, $sucursal->id_sucursal);
+
+        return back()->with('exito', 'La opción fue agregada al grupo.');
+    }
+
+    public function eliminarOpcionModificador(Request $solicitud, OpcionModificadorProducto $opcion): RedirectResponse
+    {
+        $negocio = Negocio::query()->firstOrFail();
+        $sucursal = $this->sucursalSeleccionada($solicitud, $negocio);
+        $this->autorizar($solicitud, 'catalogos.gestionar', $sucursal->id_sucursal);
+
+        $pertenece = DB::table('opciones_modificadores_productos')
+            ->join('grupos_modificadores_productos', 'grupos_modificadores_productos.id_grupo_modificador_producto', '=', 'opciones_modificadores_productos.ref_grupo_modificador_producto')
+            ->join('productos', 'productos.id_producto', '=', 'grupos_modificadores_productos.ref_producto')
+            ->where('opciones_modificadores_productos.id_opcion_modificador_producto', $opcion->id_opcion_modificador_producto)
+            ->where('productos.ref_negocio', $negocio->id_negocio)
+            ->exists();
+        abort_unless($pertenece, 404);
+
+        $opcion->update(['activo' => false]);
+        $this->registrar($solicitud, 'eliminar_opcion_modificador', 'opciones_modificadores_productos', $opcion->id_opcion_modificador_producto, [], $sucursal->id_sucursal);
+
+        return back()->with('exito', 'La opción fue retirada del grupo.');
     }
 
     public function actualizarDisponibilidadCategoria(Request $solicitud, CategoriaProducto $categoria): RedirectResponse

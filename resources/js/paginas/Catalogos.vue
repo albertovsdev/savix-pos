@@ -12,6 +12,8 @@ const props = defineProps({
     unidades_medida: { type: Array, default: () => [] },
     insumos: { type: Array, default: () => [] },
     recetas: { type: Array, default: () => [] },
+    grupos_modificadores: { type: Array, default: () => [] },
+    opciones_modificadores: { type: Array, default: () => [] },
     tipos_inventario: { type: Array, default: () => [] },
     puede_gestionar: { type: Boolean, default: false },
 });
@@ -32,12 +34,17 @@ const receta = useForm({
     ref_producto: '', ref_insumo: '', cantidad: '', ref_sucursal: props.sucursal_seleccionada.id_sucursal,
 });
 const recetasDelProducto = computed(() => props.recetas.filter((item) => String(item.ref_producto) === String(receta.ref_producto)));
+const grupoModificador = useForm({ ref_producto: '', nombre: '', minimo_selecciones: 0, maximo_selecciones: 1, ref_sucursal: props.sucursal_seleccionada.id_sucursal });
+const opcionModificador = useForm({ ref_grupo_modificador_producto: '', nombre: '', tipo_modificacion: 'nota', ref_insumo: '', cantidad_insumo: '0.0000', precio_adicional: '0.00', ref_sucursal: props.sucursal_seleccionada.id_sucursal });
+const opcionesDelGrupo = computed(() => props.opciones_modificadores.filter((item) => String(item.ref_grupo_modificador_producto) === String(opcionModificador.ref_grupo_modificador_producto)));
 
 watch(() => props.sucursal_seleccionada.id_sucursal, (idSucursal) => {
     area.ref_sucursal = idSucursal;
     producto.ref_sucursal = idSucursal;
     insumo.ref_sucursal = idSucursal;
     receta.ref_sucursal = idSucursal;
+    grupoModificador.ref_sucursal = idSucursal;
+    opcionModificador.ref_sucursal = idSucursal;
     producto.areas_preparacion = [];
 });
 
@@ -47,6 +54,9 @@ const guardarArea = () => area.post('/catalogos/areas-preparacion', { preserveSc
 const guardarProducto = () => producto.transform((datos) => ({ ...datos, ref_categoria_producto: datos.ref_categoria_producto || null, codigo: datos.codigo || null })).post('/catalogos/productos', { preserveScroll: true, onSuccess: () => producto.reset('ref_categoria_producto', 'codigo', 'nombre', 'descripcion', 'precio_compra', 'precio_venta', 'tipo_inventario', 'areas_preparacion') });
 const guardarInsumo = () => insumo.transform((datos) => ({ ...datos, codigo: datos.codigo || null })).post('/catalogos/insumos', { preserveScroll: true, onSuccess: () => insumo.reset('codigo', 'nombre', 'costo_unitario', 'existencia_actual', 'existencia_minima') });
 const guardarReceta = () => receta.post('/catalogos/recetas', { preserveScroll: true, onSuccess: () => receta.reset('ref_insumo', 'cantidad') });
+const guardarGrupoModificador = () => grupoModificador.post('/catalogos/grupos-modificadores', { preserveScroll: true, onSuccess: () => grupoModificador.reset('ref_producto', 'nombre', 'minimo_selecciones', 'maximo_selecciones') });
+const guardarOpcionModificador = () => opcionModificador.transform((datos) => ({ ...datos, ref_insumo: datos.ref_insumo || null, cantidad_insumo: datos.cantidad_insumo || 0 })).post('/catalogos/opciones-modificadores', { preserveScroll: true, onSuccess: () => opcionModificador.reset('nombre', 'ref_insumo', 'cantidad_insumo', 'precio_adicional') });
+const retirarOpcionModificador = (item) => router.delete(`/catalogos/opciones-modificadores/${item.id_opcion_modificador_producto}`, { data: { ref_sucursal: props.sucursal_seleccionada.id_sucursal }, preserveScroll: true });
 const retirarInsumoReceta = (item) => router.delete(`/catalogos/recetas/${item.id_receta_producto}`, { data: { ref_sucursal: props.sucursal_seleccionada.id_sucursal }, preserveScroll: true });
 const alternarCategoria = (item) => router.put(`/catalogos/categorias/${item.id_categoria_producto}/disponibilidad`, { ref_sucursal: props.sucursal_seleccionada.id_sucursal, habilitada: !Boolean(item.habilitada) }, { preserveScroll: true });
 const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_producto}/disponibilidad`, { ref_sucursal: props.sucursal_seleccionada.id_sucursal, habilitado: !Boolean(item.habilitado) }, { preserveScroll: true });
@@ -66,7 +76,7 @@ const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_pr
 
         <div class="savix-pos-administracion__marco">
             <nav class="savix-pos-administracion__navegacion" aria-label="Secciones de catálogo">
-                <button v-for="item in [['productos', 'Productos'], ['categorias', 'Categorías'], ['areas', 'Áreas de preparación'], ['insumos', 'Insumos'], ['recetas', 'Recetas']]" :key="item[0]" class="savix-pos-navegacion__item" :class="{ 'savix-pos-navegacion__item--activo': seccion === item[0] }" @click="seccion = item[0]">{{ item[1] }}</button>
+                <button v-for="item in [['productos', 'Productos'], ['categorias', 'Categorías'], ['areas', 'Áreas de preparación'], ['insumos', 'Insumos'], ['recetas', 'Recetas'], ['modificadores', 'Opciones y extras']]" :key="item[0]" class="savix-pos-navegacion__item" :class="{ 'savix-pos-navegacion__item--activo': seccion === item[0] }" @click="seccion = item[0]">{{ item[1] }}</button>
             </nav>
 
             <section class="savix-pos-administracion__contenido">
@@ -131,6 +141,39 @@ const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_pr
                         <p v-if="!recetasDelProducto.length" class="savix-pos-vacio">Este producto todavía no tiene insumos en su receta.</p>
                     </div>
                     <p v-else class="savix-pos-vacio">Selecciona un producto para consultar su receta.</p>
+                </section>
+
+                <section v-if="seccion === 'modificadores'" class="savix-pos-seccion">
+                    <div class="savix-pos-seccion__subtitulo"><h2>Opciones y extras</h2><p>Configura qué cambia la preparación, el consumo o el precio del producto.</p></div>
+                    <form v-if="puede_gestionar" class="savix-pos-formulario-interno" @submit.prevent="guardarGrupoModificador">
+                        <div class="savix-pos-seccion__subtitulo"><h2>Nuevo grupo de opciones</h2><p>Ejemplos: Preparación, Extras o Salsas.</p></div>
+                        <div class="savix-pos-cuadricula savix-pos-cuadricula--tres">
+                            <label class="savix-pos-campo"><span>Producto</span><select v-model="grupoModificador.ref_producto" required><option disabled value="">Selecciona un producto</option><option v-for="item in productos" :key="item.id_producto" :value="item.id_producto">{{ item.nombre }}</option></select></label>
+                            <label class="savix-pos-campo"><span>Nombre del grupo</span><input v-model="grupoModificador.nombre" placeholder="Ej. Extras" required></label>
+                            <label class="savix-pos-campo"><span>Mínimo de selecciones</span><input v-model="grupoModificador.minimo_selecciones" type="number" min="0" max="50" required></label>
+                            <label class="savix-pos-campo"><span>Máximo de selecciones</span><input v-model="grupoModificador.maximo_selecciones" type="number" min="1" max="50" required></label>
+                        </div>
+                        <footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="grupoModificador.processing">{{ grupoModificador.processing ? 'Guardando…' : 'Crear grupo' }}</button></footer>
+                    </form>
+
+                    <form v-if="puede_gestionar" class="savix-pos-formulario-interno" @submit.prevent="guardarOpcionModificador">
+                        <div class="savix-pos-seccion__subtitulo"><h2>Nueva opción o extra</h2><p>Un extra agrega insumo y precio; una eliminación evita consumir ese insumo.</p></div>
+                        <div class="savix-pos-cuadricula savix-pos-cuadricula--dos">
+                            <label class="savix-pos-campo"><span>Grupo</span><select v-model="opcionModificador.ref_grupo_modificador_producto" required><option disabled value="">Selecciona un grupo</option><option v-for="item in grupos_modificadores" :key="item.id_grupo_modificador_producto" :value="item.id_grupo_modificador_producto">{{ item.producto }} · {{ item.nombre }}</option></select></label>
+                            <label class="savix-pos-campo"><span>Nombre de la opción</span><input v-model="opcionModificador.nombre" placeholder="Ej. Sin aguacate" required></label>
+                            <label class="savix-pos-campo"><span>Efecto</span><select v-model="opcionModificador.tipo_modificacion"><option value="eliminar_insumo">Eliminar insumo de receta</option><option value="agregar_insumo">Agregar insumo / extra</option><option value="nota">Solo nota de preparación</option></select></label>
+                            <label v-if="opcionModificador.tipo_modificacion !== 'nota'" class="savix-pos-campo"><span>Insumo afectado</span><select v-model="opcionModificador.ref_insumo" required><option disabled value="">Selecciona un insumo</option><option v-for="item in insumos" :key="item.id_insumo" :value="item.id_insumo">{{ item.nombre }} ({{ item.abreviatura }})</option></select></label>
+                            <label v-if="opcionModificador.tipo_modificacion === 'agregar_insumo'" class="savix-pos-campo"><span>Cantidad extra</span><input v-model="opcionModificador.cantidad_insumo" type="number" min="0.0001" step="0.0001" required></label>
+                            <label class="savix-pos-campo"><span>Precio adicional (MXN)</span><input v-model="opcionModificador.precio_adicional" type="number" min="0" step="0.01" required></label>
+                        </div>
+                        <footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="opcionModificador.processing">{{ opcionModificador.processing ? 'Guardando…' : 'Agregar opción' }}</button></footer>
+                    </form>
+
+                    <div v-if="opcionModificador.ref_grupo_modificador_producto" class="savix-pos-lista">
+                        <article v-for="item in opcionesDelGrupo" :key="item.id_opcion_modificador_producto" class="savix-pos-lista__fila"><div><strong>{{ item.nombre }}</strong><span>{{ item.tipo_modificacion === 'eliminar_insumo' ? 'No consume' : item.tipo_modificacion === 'agregar_insumo' ? 'Agrega' : 'Nota de preparación' }}{{ item.insumo ? ': ' + item.insumo : '' }}</span></div><span v-if="item.tipo_modificacion === 'agregar_insumo'">{{ item.cantidad_insumo }} {{ item.abreviatura }} · +${{ Number(item.precio_adicional).toFixed(2) }}</span><span v-else>{{ Number(item.precio_adicional).toFixed(2) > 0 ? '+' : '' }}${{ Number(item.precio_adicional).toFixed(2) }}</span><button v-if="puede_gestionar" class="savix-pos-boton savix-pos-boton--secundario" type="button" @click="retirarOpcionModificador(item)">Retirar</button></article>
+                        <p v-if="!opcionesDelGrupo.length" class="savix-pos-vacio">Este grupo todavía no tiene opciones.</p>
+                    </div>
+                    <p v-else class="savix-pos-vacio">Selecciona un grupo para revisar sus opciones.</p>
                 </section>
 
                 <section v-if="seccion === 'insumos'" class="savix-pos-seccion">
