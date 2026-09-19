@@ -4,6 +4,7 @@ use App\Http\Controllers\AdministracionControlador;
 use App\Http\Controllers\AutenticacionControlador;
 use App\Http\Controllers\CatalogosControlador;
 use App\Http\Controllers\ConfiguracionInicialControlador;
+use App\Http\Controllers\OperacionControlador;
 use App\Http\Controllers\PanelControlador;
 use App\Models\Negocio;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,16 @@ Route::post('/acceso', [AutenticacionControlador::class, 'iniciar'])->middleware
 Route::delete('/acceso', [AutenticacionControlador::class, 'destruir'])->middleware('auth')->name('logout');
 
 Route::get('/panel', [PanelControlador::class, 'mostrar'])->middleware('auth')->name('panel');
+
+Route::middleware('auth')->prefix('operacion')->group(function (): void {
+    Route::get('/', [OperacionControlador::class, 'mostrar'])->name('operacion');
+    Route::post('/mesas', [OperacionControlador::class, 'crearMesa'])->name('operacion.mesas.crear');
+    Route::post('/mesas/{mesa}/abrir', [OperacionControlador::class, 'abrirMesa'])->name('operacion.mesas.abrir');
+    Route::post('/mostrador', [OperacionControlador::class, 'crearPedidoMostrador'])->name('operacion.mostrador.crear');
+    Route::post('/pedidos/{pedido}/detalles', [OperacionControlador::class, 'agregarDetalle'])->name('operacion.detalles.crear');
+    Route::delete('/detalles/{detalle}', [OperacionControlador::class, 'eliminarDetalle'])->name('operacion.detalles.eliminar');
+    Route::post('/pedidos/{pedido}/confirmar-ronda', [OperacionControlador::class, 'confirmarRonda'])->name('operacion.rondas.confirmar');
+});
 
 Route::middleware('auth')->prefix('administracion')->group(function (): void {
     Route::get('/', [AdministracionControlador::class, 'mostrar'])->name('administracion');
