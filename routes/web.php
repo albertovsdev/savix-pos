@@ -3,9 +3,14 @@
 use App\Http\Controllers\AdministracionControlador;
 use App\Http\Controllers\AutenticacionControlador;
 use App\Http\Controllers\CatalogosControlador;
+use App\Http\Controllers\CajaControlador;
+use App\Http\Controllers\ComprasControlador;
 use App\Http\Controllers\ConfiguracionInicialControlador;
+use App\Http\Controllers\InventarioControlador;
 use App\Http\Controllers\OperacionControlador;
+use App\Http\Controllers\PreparacionControlador;
 use App\Http\Controllers\PanelControlador;
+use App\Http\Controllers\ReportesControlador;
 use App\Models\Negocio;
 use Illuminate\Support\Facades\Route;
 
@@ -31,8 +36,36 @@ Route::middleware('auth')->prefix('operacion')->group(function (): void {
     Route::post('/mostrador', [OperacionControlador::class, 'crearPedidoMostrador'])->name('operacion.mostrador.crear');
     Route::post('/pedidos/{pedido}/detalles', [OperacionControlador::class, 'agregarDetalle'])->name('operacion.detalles.crear');
     Route::delete('/detalles/{detalle}', [OperacionControlador::class, 'eliminarDetalle'])->name('operacion.detalles.eliminar');
+    Route::post('/detalles/{detalle}/cancelar', [OperacionControlador::class, 'cancelarDetalleEnviado'])->name('operacion.detalles.cancelar');
     Route::post('/pedidos/{pedido}/confirmar-ronda', [OperacionControlador::class, 'confirmarRonda'])->name('operacion.rondas.confirmar');
 });
+
+Route::middleware('auth')->prefix('caja')->group(function (): void {
+    Route::get('/', [CajaControlador::class, 'mostrar'])->name('caja');
+    Route::post('/pedidos/{pedido}/partes', [CajaControlador::class, 'crearParte'])->name('caja.partes.crear');
+    Route::put('/detalles/{id_detalle}/parte', [CajaControlador::class, 'asignarDetalleParte'])->name('caja.detalles.parte.asignar');
+    Route::post('/partes/{id_parte}/cobrar', [CajaControlador::class, 'cobrarParte'])->name('caja.partes.cobrar');
+});
+
+Route::middleware('auth')->get('/tickets/pedidos/{pedido}', [CajaControlador::class, 'mostrarTicket'])->name('tickets.pedidos.mostrar');
+
+Route::middleware('auth')->prefix('preparacion')->group(function (): void {
+    Route::get('/', [PreparacionControlador::class, 'mostrar'])->name('preparacion');
+    Route::post('/detalles/{id_detalle_area}/estado', [PreparacionControlador::class, 'actualizarEstado'])->name('preparacion.detalles.estado.actualizar');
+});
+
+Route::middleware('auth')->prefix('inventario')->group(function (): void {
+    Route::get('/', [InventarioControlador::class, 'mostrar'])->name('inventario');
+    Route::post('/{tipo_recurso}/{id_recurso}/ajustar', [InventarioControlador::class, 'ajustarExistencia'])->name('inventario.ajustar');
+});
+
+Route::middleware('auth')->prefix('compras')->group(function (): void {
+    Route::get('/', [ComprasControlador::class, 'mostrar'])->name('compras');
+    Route::post('/proveedores', [ComprasControlador::class, 'crearProveedor'])->name('compras.proveedores.crear');
+    Route::post('/', [ComprasControlador::class, 'registrarCompra'])->name('compras.registrar');
+});
+
+Route::middleware('auth')->get('/reportes', [ReportesControlador::class, 'mostrar'])->name('reportes');
 
 Route::middleware('auth')->prefix('administracion')->group(function (): void {
     Route::get('/', [AdministracionControlador::class, 'mostrar'])->name('administracion');
@@ -40,6 +73,7 @@ Route::middleware('auth')->prefix('administracion')->group(function (): void {
     Route::post('/sucursales', [AdministracionControlador::class, 'crearSucursal'])->name('administracion.sucursales.crear');
     Route::put('/sucursales/{sucursal}', [AdministracionControlador::class, 'actualizarSucursal'])->name('administracion.sucursales.actualizar');
     Route::post('/usuarios', [AdministracionControlador::class, 'crearUsuario'])->name('administracion.usuarios.crear');
+    Route::put('/usuarios/{usuario}/areas-preparacion', [AdministracionControlador::class, 'guardarAreasPreparacion'])->name('administracion.usuarios.areas-preparacion.guardar');
     Route::put('/usuarios/{usuario}/permisos', [AdministracionControlador::class, 'guardarPermisoUsuario'])->name('administracion.usuarios.permisos.guardar');
 });
 

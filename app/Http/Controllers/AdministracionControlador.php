@@ -70,6 +70,13 @@ class AdministracionControlador extends Controller
                         ->where('usuarios_roles.activo', true)
                         ->pluck('cat_roles.nombre')
                         ->all(),
+                    'areas_preparacion' => DB::table('usuarios_areas_preparacion')
+                        ->join('areas_preparacion', 'areas_preparacion.id_area_preparacion', '=', 'usuarios_areas_preparacion.ref_area_preparacion')
+                        ->where('usuarios_areas_preparacion.ref_usuario', $usuario->id_usuario)
+                        ->where('usuarios_areas_preparacion.activo', true)
+                        ->where('areas_preparacion.activo', true)
+                        ->orderBy('areas_preparacion.nombre')
+                        ->get(['areas_preparacion.id_area_preparacion', 'areas_preparacion.ref_sucursal', 'areas_preparacion.nombre']),
                     'permisos_especiales' => DB::table('usuarios_permisos')
                         ->join('cat_permisos', 'cat_permisos.id_permiso', '=', 'usuarios_permisos.ref_permiso')
                         ->where('usuarios_permisos.ref_usuario', $usuario->id_usuario)
@@ -83,13 +90,14 @@ class AdministracionControlador extends Controller
         return Inertia::render('Administracion', [
             'negocio' => [
                 ...$negocio->only(['id_negocio', 'nombre', 'nombre_comercial', 'clave_folio', 'rfc', 'correo', 'telefono', 'color_primario', 'color_secundario', 'color_acento', 'tema_predeterminado', 'porcentaje_iva', 'precios_incluyen_iva', 'ancho_ticket_mm', 'direccion_ticket', 'pie_ticket']),
-                'logo_url' => $negocio->ruta_logo ? Storage::disk('public')->url($negocio->ruta_logo) : null,
+                'logo_url' => $negocio->ruta_logo ? '/storage/'.ltrim($negocio->ruta_logo, '/') : null,
             ],
             'sucursales' => $sucursales,
             'usuarios' => $usuarios,
             'roles' => DB::table('cat_roles')->where('activo', true)->orderBy('nombre')->get(['id_rol', 'codigo', 'nombre', 'descripcion']),
             'permisos' => DB::table('cat_permisos')->where('activo', true)->orderBy('modulo')->orderBy('nombre')->get(['id_permiso', 'modulo', 'codigo', 'nombre']),
             'modulos' => DB::table('cat_modulos')->where('activo', true)->orderBy('orden')->get(['id_modulo', 'codigo', 'nombre']),
+            'areas_preparacion' => DB::table('areas_preparacion')->where('activo', true)->orderBy('nombre')->get(['id_area_preparacion', 'ref_sucursal', 'nombre', 'codigo']),
             'puede' => [
                 'configurar_negocio' => $this->servicio_permisos->tiene($usuario, 'negocio.configurar'),
                 'gestionar_sucursales' => $this->servicio_permisos->tiene($usuario, 'sucursales.gestionar'),
@@ -120,6 +128,7 @@ class AdministracionControlador extends Controller
             'ancho_ticket_mm' => ['required', Rule::in([58, 80])],
             'direccion_ticket' => ['nullable', 'string', 'max:2000'],
             'pie_ticket' => ['nullable', 'string', 'max:2000'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
         ]);
 
         $archivo_logo = $datos['logo'] ?? null;
@@ -265,9 +274,19 @@ class AdministracionControlador extends Controller
             'pin' => ['required', 'digits:4', 'confirmed'],
             'ref_sucursal' => ['required', Rule::exists('sucursales', 'id_sucursal')->where('ref_negocio', $negocio->id_negocio)],
             'ref_rol' => ['required', 'exists:cat_roles,id_rol'],
+            'areas_preparacion' => ['nullable', 'array'],
+            'areas_preparacion.*' => ['integer', 'exists:areas_preparacion,id_area_preparacion'],
         ]);
 
-        $usuario = DB::transaction(function () use ($datos): Usuario {
+        $ids_areas = collect($datos['areas_preparacion'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
+        $areas_validas = DB::table('areas_preparacion')
+            ->where('ref_sucursal', $datos['ref_sucursal'])
+            ->where('activo', true)
+            ->whereIn('id_area_preparacion', $ids_areas)
+            ->count();
+        abort_unless($areas_validas === $ids_areas->count(), 422);
+
+        $usuario = DB::transaction(function () use ($datos, $ids_areas): Usuario {
             $codigo_rol = DB::table('cat_roles')->where('id_rol', $datos['ref_rol'])->value('codigo');
 
             $usuario = Usuario::query()->create([
@@ -297,6 +316,16 @@ class AdministracionControlador extends Controller
                 'actualizado_en' => now(),
             ]);
 
+            foreach ($ids_areas as $id_area) {
+                DB::table('usuarios_areas_preparacion')->insert([
+                    'ref_usuario' => $usuario->id_usuario,
+                    'ref_area_preparacion' => $id_area,
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+
             return $usuario;
         });
 
@@ -305,6 +334,58 @@ class AdministracionControlador extends Controller
         return back()->with('exito', 'El usuario fue creado.');
     }
 
+    public function guardarAreasPreparacion(Request $solicitud, Usuario $usuario): RedirectResponse
+    {
+        $this->autorizar($solicitud, 'usuarios.gestionar');
+
+        $datos = $solicitud->validate([
+            'ref_sucursal' => ['required', 'exists:sucursales,id_sucursal'],
+            'areas_preparacion' => ['required', 'array'],
+            'areas_preparacion.*' => ['integer', 'exists:areas_preparacion,id_area_preparacion'],
+        ]);
+        abort_unless(DB::table('usuarios_sucursales')
+            ->where('ref_usuario', $usuario->id_usuario)
+            ->where('ref_sucursal', $datos['ref_sucursal'])
+            ->where('activo', true)
+            ->exists(), 422);
+
+        $ids_areas = collect($datos['areas_preparacion'])->map(fn ($id) => (int) $id)->unique()->values();
+        $areas_validas = DB::table('areas_preparacion')
+            ->where('ref_sucursal', $datos['ref_sucursal'])
+            ->where('activo', true)
+            ->whereIn('id_area_preparacion', $ids_areas)
+            ->count();
+        abort_unless($areas_validas === $ids_areas->count(), 422);
+
+        DB::transaction(function () use ($usuario, $datos, $ids_areas): void {
+            $ids_areas_sucursal = DB::table('areas_preparacion')
+                ->where('ref_sucursal', $datos['ref_sucursal'])
+                ->pluck('id_area_preparacion');
+            DB::table('usuarios_areas_preparacion')
+                ->where('ref_usuario', $usuario->id_usuario)
+                ->whereIn('ref_area_preparacion', $ids_areas_sucursal)
+                ->update(['activo' => false, 'actualizado_en' => now()]);
+
+            foreach ($ids_areas as $id_area) {
+                DB::table('usuarios_areas_preparacion')->upsert([
+                    [
+                        'ref_usuario' => $usuario->id_usuario,
+                        'ref_area_preparacion' => $id_area,
+                        'activo' => true,
+                        'creado_en' => now(),
+                        'actualizado_en' => now(),
+                    ],
+                ], ['ref_usuario', 'ref_area_preparacion'], ['activo', 'actualizado_en']);
+            }
+        });
+
+        $this->registrar($solicitud, 'asignar_areas_preparacion', 'usuarios_areas_preparacion', $usuario->id_usuario, [
+            'ref_sucursal' => $datos['ref_sucursal'],
+            'areas_preparacion' => $ids_areas->all(),
+        ], $datos['ref_sucursal']);
+
+        return back()->with('exito', 'Las áreas de preparación fueron actualizadas.');
+    }
     public function guardarPermisoUsuario(Request $solicitud, Usuario $usuario): RedirectResponse
     {
         $this->autorizar($solicitud, 'roles.gestionar');

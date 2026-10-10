@@ -7,17 +7,21 @@ use App\Models\Mesa;
 use App\Models\Pedido;
 use App\Models\RondaPedido;
 use App\Models\Sucursal;
+use App\Models\Usuario;
+use App\Services\ServicioInventario;
 use App\Services\ServicioPermisos;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class OperacionControlador extends Controller
 {
-    public function __construct(private readonly ServicioPermisos $servicio_permisos)
+    public function __construct(private readonly ServicioPermisos $servicio_permisos, private readonly ServicioInventario $servicio_inventario)
     {
     }
 
@@ -72,6 +76,7 @@ class OperacionControlador extends Controller
             'productos' => $productos,
             'pedido' => $pedido ? $this->presentarPedido($pedido) : null,
             'puede_configurar_mesas' => $this->servicio_permisos->tiene($solicitud->user(), 'catalogos.gestionar', $sucursal->id_sucursal),
+            'puede_cobrar' => $this->servicio_permisos->tiene($solicitud->user(), 'caja.cobrar', $sucursal->id_sucursal),
         ]);
     }
 
@@ -126,6 +131,7 @@ class OperacionControlador extends Controller
             ]);
             $mesa->update(['estado' => 'ocupada']);
             $this->crearRondaBorrador($pedido, $solicitud->user()->id_usuario);
+            $this->crearParteCuentaGeneral($pedido);
 
             return $pedido;
         });
@@ -151,6 +157,7 @@ class OperacionControlador extends Controller
                 'activo' => true,
             ]);
             $this->crearRondaBorrador($pedido, $solicitud->user()->id_usuario);
+            $this->crearParteCuentaGeneral($pedido);
 
             return $pedido;
         });
@@ -180,11 +187,19 @@ class OperacionControlador extends Controller
 
         DB::transaction(function () use ($pedido, $solicitud, $datos, $producto, $opciones): void {
             $ronda = $this->rondaBorrador($pedido, $solicitud->user()->id_usuario);
+            $id_parte_cuenta = DB::table('partes_cuenta_pedidos')
+                ->where('ref_pedido', $pedido->id_pedido)
+                ->where('estado', 'abierta')
+                ->where('activo', true)
+                ->orderBy('orden')
+                ->value('id_parte_cuenta_pedido');
+            abort_unless($id_parte_cuenta, 422);
             $importe_extras = $opciones->sum('precio_adicional') * $datos['cantidad'];
             $importe_total = ($producto->precio_venta * $datos['cantidad']) + $importe_extras;
 
             $detalle = DetalleRondaPedido::query()->create([
                 'ref_ronda_pedido' => $ronda->id_ronda_pedido,
+                'ref_parte_cuenta_pedido' => $id_parte_cuenta,
                 'ref_producto' => $producto->id_producto,
                 'cantidad' => $datos['cantidad'],
                 'nombre_producto' => $producto->nombre,
@@ -266,6 +281,7 @@ class OperacionControlador extends Controller
                         'actualizado_en' => now(),
                     ]);
                 }
+                $this->servicio_inventario->descontarPorVenta($detalle, $sucursal->id_sucursal);
             }
 
             $ronda->update(['estado' => 'enviada', 'enviada_en' => now()]);
@@ -279,6 +295,77 @@ class OperacionControlador extends Controller
         return back()->with('exito', "La ronda {$ronda->numero_ronda} fue confirmada.");
     }
 
+    public function cancelarDetalleEnviado(Request $solicitud, DetalleRondaPedido $detalle): RedirectResponse
+    {
+        $sucursal = $this->sucursalSeleccionada($solicitud);
+        $ronda = RondaPedido::query()->findOrFail($detalle->ref_ronda_pedido);
+        $pedido = Pedido::query()->findOrFail($ronda->ref_pedido);
+        $this->asegurarPedidoAbierto($pedido, $sucursal->id_sucursal);
+        abort_unless($ronda->estado === 'enviada' && $detalle->estado === 'activo' && $detalle->activo, 422);
+
+        $datos = $solicitud->validate([
+            'motivo' => ['required', 'string', 'max:500'],
+            'nombre_usuario_autorizacion' => ['required', 'string', 'max:80'],
+            'pin_autorizacion' => ['required', 'digits:4'],
+            'fue_preparado' => ['required', 'boolean'],
+        ]);
+        $autorizador = Usuario::query()
+            ->where('nombre_usuario', mb_strtolower($datos['nombre_usuario_autorizacion']))
+            ->where('activo', true)
+            ->first();
+        if (! $autorizador || ! Hash::check($datos['pin_autorizacion'], $autorizador->pin_hash)) {
+            throw ValidationException::withMessages(['pin_autorizacion' => 'El PIN de autorización es incorrecto.']);
+        }
+        if (! $this->servicio_permisos->tiene($autorizador, 'ventas.cancelar', $sucursal->id_sucursal)) {
+            throw ValidationException::withMessages(['nombre_usuario_autorizacion' => 'Este usuario no tiene permiso para cancelar ventas.']);
+        }
+
+        $id_cancelacion = DB::transaction(function () use ($detalle, $ronda, $sucursal, $solicitud, $datos, $autorizador): int {
+            $detalle->update(['estado' => 'cancelado', 'activo' => false]);
+            DB::table('detalles_rondas_pedidos_areas_preparacion')
+                ->where('ref_detalle_ronda_pedido', $detalle->id_detalle_ronda_pedido)
+                ->where('activo', true)
+                ->update(['estado_preparacion' => 'cancelado', 'actualizado_en' => now()]);
+            $id_cancelacion = DB::table('cancelaciones_detalles_pedidos')->insertGetId([
+                'ref_detalle_ronda_pedido' => $detalle->id_detalle_ronda_pedido,
+                'ref_sucursal' => $sucursal->id_sucursal,
+                'ref_usuario_solicitud' => $solicitud->user()->id_usuario,
+                'ref_usuario_autorizacion' => $autorizador->id_usuario,
+                'motivo' => $datos['motivo'],
+                'fue_preparado' => $datos['fue_preparado'],
+                'cancelado_en' => now(),
+                'activo' => true,
+                'creado_en' => now(),
+                'actualizado_en' => now(),
+            ]);
+            if (! $datos['fue_preparado']) {
+                $this->servicio_inventario->devolverPorCancelacion($detalle, $sucursal->id_sucursal);
+            }
+            if ($datos['fue_preparado']) {
+                DB::table('mermas_pedidos')->insert([
+                    'ref_cancelacion_detalle_pedido' => $id_cancelacion,
+                    'ref_sucursal' => $sucursal->id_sucursal,
+                    'ref_usuario_registro' => $solicitud->user()->id_usuario,
+                    'descripcion' => "{$detalle->cantidad} × {$detalle->nombre_producto} cancelado después de preparación.",
+                    'registrada_en' => now(),
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+            $this->recalcularRonda($ronda);
+
+            return $id_cancelacion;
+        });
+
+        $this->registrar($solicitud, 'cancelar_detalle_enviado', 'cancelaciones_detalles_pedidos', $id_cancelacion, [
+            'ref_detalle_ronda_pedido' => $detalle->id_detalle_ronda_pedido,
+            'fue_preparado' => $datos['fue_preparado'],
+            'motivo' => $datos['motivo'],
+        ], $sucursal->id_sucursal);
+
+        return back()->with('exito', $datos['fue_preparado'] ? 'La cancelación fue registrada como merma.' : 'La cancelación fue registrada como no preparada.');
+    }
     private function presentarPedido(Pedido $pedido): array
     {
         $rondas = RondaPedido::query()
@@ -294,11 +381,33 @@ class OperacionControlador extends Controller
             ->whereIn('ref_detalle_ronda_pedido', $detalles->pluck('id_detalle_ronda_pedido'))
             ->where('activo', true)
             ->get(['ref_detalle_ronda_pedido', 'nombre_opcion', 'precio_adicional']);
-
         $detalles = $detalles->map(function (DetalleRondaPedido $detalle) use ($modificadores): array {
             return [
                 ...$detalle->toArray(),
                 'modificadores' => $modificadores->where('ref_detalle_ronda_pedido', $detalle->id_detalle_ronda_pedido)->values(),
+            ];
+        });
+
+        $detalles_enviados = DetalleRondaPedido::query()
+            ->join('rondas_pedidos', 'rondas_pedidos.id_ronda_pedido', '=', 'detalles_rondas_pedidos.ref_ronda_pedido')
+            ->where('rondas_pedidos.ref_pedido', $pedido->id_pedido)
+            ->where('rondas_pedidos.estado', 'enviada')
+            ->where('detalles_rondas_pedidos.estado', 'activo')
+            ->where('detalles_rondas_pedidos.activo', true)
+            ->orderBy('rondas_pedidos.numero_ronda')
+            ->orderBy('detalles_rondas_pedidos.id_detalle_ronda_pedido')
+            ->get(['detalles_rondas_pedidos.*', 'rondas_pedidos.numero_ronda']);
+        $modificadores_enviados = DB::table('detalles_rondas_pedidos_modificadores')
+            ->whereIn('ref_detalle_ronda_pedido', $detalles_enviados->pluck('id_detalle_ronda_pedido'))
+            ->where('activo', true)
+            ->get(['ref_detalle_ronda_pedido', 'nombre_opcion']);
+        $detalles_enviados = $detalles_enviados->map(function (DetalleRondaPedido $detalle) use ($modificadores_enviados): array {
+            return [
+                ...$detalle->toArray(),
+                'modificadores' => $modificadores_enviados
+                    ->where('ref_detalle_ronda_pedido', $detalle->id_detalle_ronda_pedido)
+                    ->pluck('nombre_opcion')
+                    ->values(),
             ];
         });
 
@@ -307,6 +416,7 @@ class OperacionControlador extends Controller
             'mesa' => $pedido->ref_mesa ? Mesa::query()->find($pedido->ref_mesa)?->nombre : null,
             'ronda_borrador' => $ronda_borrador?->only(['id_ronda_pedido', 'numero_ronda', 'importe_total']),
             'detalles_borrador' => $detalles,
+            'detalles_enviados' => $detalles_enviados,
             'rondas_enviadas' => $rondas->where('estado', 'enviada')->values(),
             'importe_total' => RondaPedido::query()->where('ref_pedido', $pedido->id_pedido)->where('estado', '!=', 'cancelada')->sum('importe_total'),
         ];
@@ -388,6 +498,20 @@ class OperacionControlador extends Controller
         ]);
     }
 
+    private function crearParteCuentaGeneral(Pedido $pedido): void
+    {
+        if (! DB::table('partes_cuenta_pedidos')->where('ref_pedido', $pedido->id_pedido)->exists()) {
+            DB::table('partes_cuenta_pedidos')->insert([
+                'ref_pedido' => $pedido->id_pedido,
+                'nombre' => 'Cuenta general',
+                'orden' => 1,
+                'estado' => 'abierta',
+                'activo' => true,
+                'creado_en' => now(),
+                'actualizado_en' => now(),
+            ]);
+        }
+    }
     private function recalcularRonda(RondaPedido $ronda): void
     {
         $ronda->update(['importe_total' => DetalleRondaPedido::query()->where('ref_ronda_pedido', $ronda->id_ronda_pedido)->where('estado', 'activo')->where('activo', true)->sum('importe_total')]);

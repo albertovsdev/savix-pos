@@ -24,7 +24,7 @@ const categoria = useForm({ nombre: '', descripcion: '', orden: 0 });
 const area = useForm({ nombre: '', codigo: '', orden: 0, ref_sucursal: props.sucursal_seleccionada.id_sucursal });
 const producto = useForm({
     ref_categoria_producto: '', codigo: '', nombre: '', descripcion: '', precio_compra: '0.00', precio_venta: '',
-    tipo_inventario: 'sin_control', areas_preparacion: [], ref_sucursal: props.sucursal_seleccionada.id_sucursal,
+    tipo_inventario: 'sin_control', existencia_actual: '0.0000', existencia_minima: '0.0000', areas_preparacion: [], ref_sucursal: props.sucursal_seleccionada.id_sucursal,
 });
 const insumo = useForm({
     codigo: '', nombre: '', ref_unidad_medida: props.unidades_medida[0]?.id_unidad_medida || '', costo_unitario: '0.0000',
@@ -51,7 +51,7 @@ watch(() => props.sucursal_seleccionada.id_sucursal, (idSucursal) => {
 const cambiarSucursal = (evento) => router.get('/catalogos', { ref_sucursal: evento.target.value }, { preserveState: false, preserveScroll: true });
 const guardarCategoria = () => categoria.post('/catalogos/categorias', { preserveScroll: true, onSuccess: () => categoria.reset() });
 const guardarArea = () => area.post('/catalogos/areas-preparacion', { preserveScroll: true, onSuccess: () => area.reset('nombre', 'codigo', 'orden') });
-const guardarProducto = () => producto.transform((datos) => ({ ...datos, ref_categoria_producto: datos.ref_categoria_producto || null, codigo: datos.codigo || null })).post('/catalogos/productos', { preserveScroll: true, onSuccess: () => producto.reset('ref_categoria_producto', 'codigo', 'nombre', 'descripcion', 'precio_compra', 'precio_venta', 'tipo_inventario', 'areas_preparacion') });
+const guardarProducto = () => producto.transform((datos) => ({ ...datos, ref_categoria_producto: datos.ref_categoria_producto || null, codigo: datos.codigo || null })).post('/catalogos/productos', { preserveScroll: true, onSuccess: () => producto.reset('ref_categoria_producto', 'codigo', 'nombre', 'descripcion', 'precio_compra', 'precio_venta', 'tipo_inventario', 'existencia_actual', 'existencia_minima', 'areas_preparacion') });
 const guardarInsumo = () => insumo.transform((datos) => ({ ...datos, codigo: datos.codigo || null })).post('/catalogos/insumos', { preserveScroll: true, onSuccess: () => insumo.reset('codigo', 'nombre', 'costo_unitario', 'existencia_actual', 'existencia_minima') });
 const guardarReceta = () => receta.post('/catalogos/recetas', { preserveScroll: true, onSuccess: () => receta.reset('ref_insumo', 'cantidad') });
 const guardarGrupoModificador = () => grupoModificador.post('/catalogos/grupos-modificadores', { preserveScroll: true, onSuccess: () => grupoModificador.reset('ref_producto', 'nombre', 'minimo_selecciones', 'maximo_selecciones') });
@@ -92,7 +92,7 @@ const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_pr
                     <div class="savix-pos-seccion__subtitulo"><h2>Productos disponibles</h2><p>Desactiva los que esta sucursal no vende, sin eliminarlos del catálogo global.</p></div>
                     <div class="savix-pos-lista">
                         <article v-for="item in productos" :key="item.id_producto" class="savix-pos-lista__fila">
-                            <div><strong>{{ item.nombre }}</strong><span>{{ item.categoria || 'Sin categoría' }} · {{ item.tipo_inventario_nombre }} · ${{ Number(item.precio_venta).toFixed(2) }}</span><span v-if="item.areas_preparacion.length">{{ item.areas_preparacion.join(', ') }}</span></div>
+                            <div><strong>{{ item.nombre }}</strong><span>{{ item.categoria || 'Sin categoría' }} · {{ item.tipo_inventario_nombre }} · ${{ Number(item.precio_venta).toFixed(2) }}</span><span v-if="item.areas_preparacion.length">{{ item.areas_preparacion.join(', ') }}</span><span v-if="item.tipo_inventario === 'unidad' || item.tipo_inventario === 'mixto'">Existencia: {{ Number(item.existencia_actual).toFixed(4) }} · Mínimo: {{ Number(item.existencia_minima).toFixed(4) }}</span></div>
                             <label v-if="puede_gestionar" class="savix-pos-opcion"><input :checked="Boolean(item.habilitado)" type="checkbox" @change="alternarProducto(item)"> Disponible</label>
                             <span v-else>{{ item.habilitado ? 'Disponible' : 'No disponible' }}</span>
                         </article>
@@ -106,7 +106,7 @@ const alternarProducto = (item) => router.put(`/catalogos/productos/${item.id_pr
                             <label class="savix-pos-campo"><span>Código interno, opcional</span><input v-model="producto.codigo" maxlength="60"></label>
                             <label class="savix-pos-campo"><span>Tipo de inventario</span><select v-model="producto.tipo_inventario"><option v-for="item in tipos_inventario" :key="item.valor" :value="item.valor">{{ item.nombre }}</option></select></label>
                             <label class="savix-pos-campo"><span>Precio de compra final (MXN)</span><input v-model="producto.precio_compra" type="number" min="0" step="0.01" required></label>
-                            <label class="savix-pos-campo"><span>Precio de venta final (MXN)</span><input v-model="producto.precio_venta" type="number" min="0" step="0.01" required></label>
+                            <label class="savix-pos-campo"><span>Precio de venta final (MXN)</span><input v-model="producto.precio_venta" type="number" min="0" step="0.01" required></label><label v-if="producto.tipo_inventario === 'unidad' || producto.tipo_inventario === 'mixto'" class="savix-pos-campo"><span>Existencia inicial</span><input v-model="producto.existencia_actual" type="number" min="0" step="0.0001" required></label><label v-if="producto.tipo_inventario === 'unidad' || producto.tipo_inventario === 'mixto'" class="savix-pos-campo"><span>Existencia mínima</span><input v-model="producto.existencia_minima" type="number" min="0" step="0.0001" required></label>
                             <label class="savix-pos-campo savix-pos-campo--ancho"><span>Descripción, opcional</span><textarea v-model="producto.descripcion" rows="2"></textarea></label>
                         </div>
                         <fieldset class="savix-pos-seleccion"><legend>Enviar a preparación en esta sucursal</legend><label v-for="item in areas_preparacion" :key="item.id_area_preparacion"><input v-model="producto.areas_preparacion" :value="item.id_area_preparacion" type="checkbox"> {{ item.nombre }}</label><p v-if="!areas_preparacion.length" class="savix-pos-vacio">Primero crea las áreas necesarias, por ejemplo Cocina o Barra.</p></fieldset>

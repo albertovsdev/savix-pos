@@ -56,6 +56,8 @@ class CatalogosInicialesSeeder extends Seeder
             ['codigo' => 'caja.realizar_corte', 'modulo' => 'caja', 'nombre' => 'Realizar corte de caja'],
             ['codigo' => 'inventario.ver', 'modulo' => 'inventario', 'nombre' => 'Ver inventario'],
             ['codigo' => 'inventario.ajustar', 'modulo' => 'inventario', 'nombre' => 'Ajustar inventario'],
+            ['codigo' => 'compras.ver', 'modulo' => 'compras', 'nombre' => 'Ver proveedores y compras'],
+            ['codigo' => 'compras.registrar', 'modulo' => 'compras', 'nombre' => 'Registrar proveedores y compras'],
             ['codigo' => 'reportes.ver', 'modulo' => 'reportes', 'nombre' => 'Ver reportes'],
             ['codigo' => 'auditoria.ver', 'modulo' => 'auditoria', 'nombre' => 'Ver bitácora de auditoría'],
         ];

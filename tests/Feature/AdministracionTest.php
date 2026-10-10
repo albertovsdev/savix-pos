@@ -21,7 +21,8 @@ class AdministracionTest extends TestCase
 
         $this->get('/administracion')->assertOk();
 
-        $this->put('/administracion/negocio', [
+        $this->post('/administracion/negocio', [
+            '_method' => 'PUT',
             'nombre' => 'Restaurante Bar MEDEL',
             'nombre_comercial' => 'MEDEL Mariscos',
             'clave_folio' => 'SX',
@@ -40,7 +41,7 @@ class AdministracionTest extends TestCase
             'logo' => UploadedFile::fake()->createWithContent('medel.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL9xQAAAABJRU5ErkJggg==')),
         ])->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('negocios', ['nombre_comercial' => 'MEDEL Mariscos', 'tema_predeterminado' => 'claro']);
+        $this->assertDatabaseHas('negocios', ['nombre_comercial' => 'MEDEL Mariscos', 'tema_predeterminado' => 'claro', 'direccion_ticket' => 'Puebla, México', 'pie_ticket' => 'Gracias por su visita']);
         Storage::disk('public')->assertExists(DB::table('negocios')->value('ruta_logo'));
 
         $modulos = DB::table('cat_modulos')->pluck('id_modulo')->map(fn ($id) => (int) $id)->all();

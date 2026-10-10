@@ -60,6 +60,7 @@ class CatalogosControlador extends Controller
             ->select([
                 'productos.id_producto', 'productos.codigo', 'productos.nombre', 'productos.precio_compra', 'productos.precio_venta', 'productos.tipo_inventario',
                 'categorias_productos.nombre as nombre_categoria', DB::raw('COALESCE(sucursales_productos.habilitado, 1) as habilitado'),
+                DB::raw('COALESCE(sucursales_productos.existencia_actual, 0) as existencia_actual'), DB::raw('COALESCE(sucursales_productos.existencia_minima, 0) as existencia_minima'),
             ])
             ->get();
 
@@ -80,6 +81,22 @@ class CatalogosControlador extends Controller
                 ->orderBy('areas_preparacion.orden')
                 ->pluck('areas_preparacion.nombre')
                 ->all();
+
+            if (in_array($producto->tipo_inventario, ['unidad', 'mixto'], true) && (float) ($datos['existencia_actual'] ?? 0) > 0) {
+                DB::table('movimientos_inventario')->insert([
+                    'ref_sucursal' => $sucursal->id_sucursal,
+                    'ref_producto' => $producto->id_producto,
+                    'tipo_movimiento' => 'entrada_inicial',
+                    'cantidad' => $datos['existencia_actual'],
+                    'existencia_anterior' => 0,
+                    'existencia_posterior' => $datos['existencia_actual'],
+                    'descripcion' => "Existencia inicial de {$producto->nombre}",
+                    'registrado_en' => now(),
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
 
             return $producto;
         });
@@ -247,6 +264,8 @@ class CatalogosControlador extends Controller
             'precio_compra' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'precio_venta' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'tipo_inventario' => ['required', Rule::in(['sin_control', 'unidad', 'receta', 'mixto'])],
+            'existencia_actual' => ['nullable', 'numeric', 'min:0', 'max:99999999.9999'],
+            'existencia_minima' => ['nullable', 'numeric', 'min:0', 'max:99999999.9999'],
             'areas_preparacion' => ['nullable', 'array'],
             'areas_preparacion.*' => ['integer', 'exists:areas_preparacion,id_area_preparacion'],
         ]);
@@ -259,10 +278,10 @@ class CatalogosControlador extends Controller
 
         $producto = DB::transaction(function () use ($datos, $ids_areas, $negocio, $sucursal): Producto {
             $producto = Producto::query()->create([
-                ...collect($datos)->except('areas_preparacion')->all(),
+                ...collect($datos)->except(['areas_preparacion', 'existencia_actual', 'existencia_minima'])->all(),
                 'ref_negocio' => $negocio->id_negocio,
                 'codigo' => $datos['codigo'] ?? null,
-                'ref_categoria_producto' => $datos['ref_categoria_producto'] ?: null,
+                'ref_categoria_producto' => $datos['ref_categoria_producto'] ?? null,
                 'activo' => true,
             ]);
 
@@ -271,6 +290,8 @@ class CatalogosControlador extends Controller
                     'ref_sucursal' => $id_sucursal,
                     'ref_producto' => $producto->id_producto,
                     'habilitado' => true,
+                    'existencia_actual' => $id_sucursal === $sucursal->id_sucursal ? ($datos['existencia_actual'] ?? 0) : 0,
+                    'existencia_minima' => $id_sucursal === $sucursal->id_sucursal ? ($datos['existencia_minima'] ?? 0) : 0,
                     'activo' => true,
                     'creado_en' => now(),
                     'actualizado_en' => now(),
@@ -286,6 +307,22 @@ class CatalogosControlador extends Controller
                 DB::table('sucursales_productos_areas_preparacion')->insert([
                     'ref_sucursal_producto' => $id_sucursal_producto,
                     'ref_area_preparacion' => $id_area,
+                    'activo' => true,
+                    'creado_en' => now(),
+                    'actualizado_en' => now(),
+                ]);
+            }
+
+            if (in_array($producto->tipo_inventario, ['unidad', 'mixto'], true) && (float) ($datos['existencia_actual'] ?? 0) > 0) {
+                DB::table('movimientos_inventario')->insert([
+                    'ref_sucursal' => $sucursal->id_sucursal,
+                    'ref_producto' => $producto->id_producto,
+                    'tipo_movimiento' => 'entrada_inicial',
+                    'cantidad' => $datos['existencia_actual'],
+                    'existencia_anterior' => 0,
+                    'existencia_posterior' => $datos['existencia_actual'],
+                    'descripcion' => "Existencia inicial de {$producto->nombre}",
+                    'registrado_en' => now(),
                     'activo' => true,
                     'creado_en' => now(),
                     'actualizado_en' => now(),

@@ -1,23 +1,28 @@
 <script setup>
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import ModalAviso from '../componentes/ModalAviso.vue';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
     sucursal_seleccionada: { type: Object, required: true }, sucursales: { type: Array, default: () => [] },
     mesas: { type: Array, default: () => [] }, productos: { type: Array, default: () => [] },
-    pedido: { type: Object, default: null }, puede_configurar_mesas: { type: Boolean, default: false },
+    pedido: { type: Object, default: null }, puede_configurar_mesas: { type: Boolean, default: false }, puede_cobrar: { type: Boolean, default: false },
 });
 
 const mensaje = computed(() => usePage().props.flash?.exito);
+const modal = ref({ abierto: false, titulo: '', mensaje: '', tipo: 'informacion' });
+const abrirModal = (titulo, contenido, tipo = 'informacion') => { modal.value = { abierto: true, titulo, mensaje: contenido, tipo }; };
 const mesa = useForm({ nombre: '', orden: 0, ref_sucursal: props.sucursal_seleccionada.id_sucursal });
 const mostrador = useForm({ ref_sucursal: props.sucursal_seleccionada.id_sucursal });
 const detalle = useForm({ ref_producto: '', cantidad: 1, opciones_modificadores: [], nota_preparacion: '', ref_sucursal: props.sucursal_seleccionada.id_sucursal });
+const cancelacion = useForm({ ref_detalle_ronda_pedido: '', motivo: '', nombre_usuario_autorizacion: '', pin_autorizacion: '', fue_preparado: false, ref_sucursal: props.sucursal_seleccionada.id_sucursal });
 const productoSeleccionado = computed(() => props.productos.find((item) => String(item.id_producto) === String(detalle.ref_producto)));
 
 watch(() => props.sucursal_seleccionada.id_sucursal, (idSucursal) => {
     mesa.ref_sucursal = idSucursal;
     mostrador.ref_sucursal = idSucursal;
     detalle.ref_sucursal = idSucursal;
+    cancelacion.ref_sucursal = idSucursal;
 });
 watch(() => detalle.ref_producto, () => { detalle.opciones_modificadores = []; });
 
@@ -28,11 +33,12 @@ const abrirMostrador = () => mostrador.post('/operacion/mostrador');
 const agregarProducto = () => detalle.post(`/operacion/pedidos/${props.pedido.id_pedido}/detalles`, { preserveScroll: true, onSuccess: () => detalle.reset('ref_producto', 'opciones_modificadores', 'nota_preparacion') });
 const retirarDetalle = (item) => router.delete(`/operacion/detalles/${item.id_detalle_ronda_pedido}`, { data: { ref_sucursal: props.sucursal_seleccionada.id_sucursal }, preserveScroll: true });
 const confirmarRonda = () => { if (window.confirm('¿Confirmas el envío de esta ronda? Ya no se podrá editar.')) router.post(`/operacion/pedidos/${props.pedido.id_pedido}/confirmar-ronda`, { ref_sucursal: props.sucursal_seleccionada.id_sucursal }, { preserveScroll: true }); };
+const solicitarCancelacion = () => cancelacion.post(`/operacion/detalles/${cancelacion.ref_detalle_ronda_pedido}/cancelar`, { preserveScroll: true, onSuccess: () => { cancelacion.reset('ref_detalle_ronda_pedido', 'motivo', 'nombre_usuario_autorizacion', 'pin_autorizacion', 'fue_preparado'); abrirModal('Cancelación registrada', 'El producto fue retirado de la cuenta y la preparación fue actualizada.', 'exito'); }, onError: (errores) => abrirModal('No se pudo autorizar la cancelación', Object.values(errores).flat().join(' '), 'error') });
 </script>
 
 <template>
     <Head title="Operación" />
-    <main class="savix-pos-administracion">
+    <main class="savix-pos-administracion"><ModalAviso :abierto="modal.abierto" :titulo="modal.titulo" :mensaje="modal.mensaje" :tipo="modal.tipo" @cerrar="modal.abierto = false" />
         <header class="savix-pos-administracion__encabezado">
             <div class="savix-pos-marca"><span class="savix-pos-marca__sello">SI</span><div><p class="savix-pos-marca__nombre">Operación</p><p class="savix-pos-marca__subtitulo">Mesas, mostrador y rondas</p></div></div>
             <Link class="savix-pos-boton savix-pos-boton--secundario" href="/panel">Volver al panel</Link>
@@ -51,7 +57,7 @@ const confirmarRonda = () => { if (window.confirm('¿Confirmas el envío de esta
             </section>
 
             <section v-else class="savix-pos-seccion">
-                <Link class="savix-pos-enlace" :href="`/operacion?ref_sucursal=${sucursal_seleccionada.id_sucursal}`">Cambiar de mesa o mostrador</Link>
+                <div class="savix-pos-seccion__acciones"><Link class="savix-pos-enlace" :href="`/operacion?ref_sucursal=${sucursal_seleccionada.id_sucursal}`">Cambiar de mesa o mostrador</Link><Link v-if="puede_cobrar" class="savix-pos-boton savix-pos-boton--primario" :href="`/caja?ref_sucursal=${sucursal_seleccionada.id_sucursal}&ref_pedido=${pedido.id_pedido}`">Cobrar y cerrar cuenta</Link></div>
                 <div class="savix-pos-seccion__subtitulo"><h2>Agregar a ronda {{ pedido.ronda_borrador?.numero_ronda }}</h2><p>Selecciona producto, extras y notas antes de confirmar.</p></div>
                 <form class="savix-pos-formulario-interno" @submit.prevent="agregarProducto">
                     <div class="savix-pos-cuadricula savix-pos-cuadricula--dos"><label class="savix-pos-campo"><span>Producto</span><select v-model="detalle.ref_producto" required><option disabled value="">Selecciona un producto</option><option v-for="item in productos" :key="item.id_producto" :value="item.id_producto">{{ item.nombre }} · ${{ Number(item.precio_venta).toFixed(2) }}</option></select></label><label class="savix-pos-campo"><span>Cantidad</span><input v-model="detalle.cantidad" type="number" min="0.001" step="0.001" required></label><label class="savix-pos-campo savix-pos-campo--ancho"><span>Nota de preparación, opcional</span><textarea v-model="detalle.nota_preparacion" rows="2" placeholder="Ej. término medio"></textarea></label></div>
@@ -62,6 +68,7 @@ const confirmarRonda = () => { if (window.confirm('¿Confirmas el envío de esta
                 <div class="savix-pos-seccion__subtitulo"><h2>Borrador actual</h2><p>Total de ronda: ${{ Number(pedido.ronda_borrador?.importe_total || 0).toFixed(2) }}</p></div>
                 <div class="savix-pos-lista"><article v-for="item in pedido.detalles_borrador" :key="item.id_detalle_ronda_pedido" class="savix-pos-lista__fila"><div><strong>{{ item.cantidad }} × {{ item.nombre_producto }}</strong><span v-if="item.modificadores.length">{{ item.modificadores.map((modificador) => modificador.nombre_opcion).join(', ') }}</span><span v-if="item.nota_preparacion">Nota: {{ item.nota_preparacion }}</span></div><span>${{ Number(item.importe_total).toFixed(2) }}</span><button class="savix-pos-boton savix-pos-boton--secundario" type="button" @click="retirarDetalle(item)">Retirar</button></article><p v-if="!pedido.detalles_borrador.length" class="savix-pos-vacio">Agrega productos antes de confirmar esta ronda.</p></div>
                 <footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="!pedido.detalles_borrador.length" @click="confirmarRonda">Confirmar y enviar ronda</button></footer>
+                <form v-if="pedido.detalles_enviados.length" class="savix-pos-formulario-interno" @submit.prevent="solicitarCancelacion"><div class="savix-pos-seccion__subtitulo"><h2>Cancelar producto enviado</h2><p>Consulta con cocina o barra si alcanzó a prepararse. La autorización y el motivo quedan registrados.</p></div><div class="savix-pos-cuadricula savix-pos-cuadricula--dos"><label class="savix-pos-campo"><span>Producto enviado</span><select v-model="cancelacion.ref_detalle_ronda_pedido" required><option disabled value="">Selecciona un producto</option><option v-for="item in pedido.detalles_enviados" :key="item.id_detalle_ronda_pedido" :value="item.id_detalle_ronda_pedido">Ronda {{ item.numero_ronda }} · {{ item.cantidad }} × {{ item.nombre_producto }}</option></select></label><label class="savix-pos-campo"><span>Usuario que autoriza</span><input v-model="cancelacion.nombre_usuario_autorizacion" required></label><label class="savix-pos-campo"><span>PIN de autorización</span><input v-model="cancelacion.pin_autorizacion" type="password" inputmode="numeric" maxlength="4" required></label><label class="savix-pos-opcion"><input v-model="cancelacion.fue_preparado" type="checkbox"> Cocina o barra confirma que ya estaba preparado: registrar como merma.</label><label class="savix-pos-campo savix-pos-campo--ancho"><span>Motivo obligatorio</span><textarea v-model="cancelacion.motivo" rows="2" required></textarea></label></div><footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--secundario" :disabled="cancelacion.processing">Registrar cancelación</button></footer></form>
                 <div class="savix-pos-seccion__subtitulo"><h2>Rondas enviadas</h2><p>Total acumulado: ${{ Number(pedido.importe_total).toFixed(2) }}</p></div><div class="savix-pos-lista"><article v-for="ronda in pedido.rondas_enviadas" :key="ronda.id_ronda_pedido" class="savix-pos-lista__fila"><div><strong>Ronda {{ ronda.numero_ronda }}</strong><span>Confirmada y separada del borrador actual.</span></div><span>${{ Number(ronda.importe_total).toFixed(2) }}</span></article><p v-if="!pedido.rondas_enviadas.length" class="savix-pos-vacio">Aún no hay rondas enviadas.</p></div>
             </section>
         </section>

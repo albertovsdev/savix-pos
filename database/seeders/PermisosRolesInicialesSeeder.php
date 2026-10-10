@@ -26,7 +26,7 @@ class PermisosRolesInicialesSeeder extends Seeder
             'mesero' => ['ventas.ver', 'ventas.crear', 'ventas.enviar_preparacion'],
             'cocina' => ['preparacion.ver', 'preparacion.actualizar_estado'],
             'barra' => ['preparacion.ver', 'preparacion.actualizar_estado'],
-            'inventario' => ['inventario.ver', 'inventario.ajustar'],
+            'inventario' => ['inventario.ver', 'inventario.ajustar', 'compras.ver', 'compras.registrar'],
         ];
 
         $ahora = now();

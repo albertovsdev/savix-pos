@@ -1,33 +1,41 @@
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import ModalAviso from '../componentes/ModalAviso.vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps({
     negocio: { type: Object, required: true }, sucursales: { type: Array, default: () => [] },
     usuarios: { type: Array, default: () => [] }, roles: { type: Array, default: () => [] },
     permisos: { type: Array, default: () => [] }, modulos: { type: Array, default: () => [] },
+    areas_preparacion: { type: Array, default: () => [] },
     puede: { type: Object, required: true },
 });
 
 const seccion = ref('negocio');
 const editandoSucursal = ref(null);
 const mensaje = computed(() => usePage().props.flash?.exito);
+const modal = ref({ abierto: false, titulo: '', mensaje: '', tipo: 'informacion' });
+const abrirModal = (titulo, contenido, tipo = 'informacion') => { modal.value = { abierto: true, titulo, mensaje: contenido, tipo }; };
 const negocio = useForm({ ...props.negocio, logo: null, precios_incluyen_iva: Boolean(props.negocio.precios_incluyen_iva) });
 const sucursal = useForm({ clave: '', nombre: '', telefono: '', correo: '', direccion: '', activo: true, modulos: props.modulos.map(({ id_modulo }) => id_modulo) });
 const usuario = useForm({ nombre: '', nombre_usuario: '', correo: '', contrasena: '', contrasena_confirmation: '', pin: '', pin_confirmation: '', ref_sucursal: props.sucursales[0]?.id_sucursal || '', ref_rol: props.roles.find((rol) => rol.codigo === 'mesero')?.id_rol || '' });
 const permiso = useForm({ ref_usuario: '', ref_permiso: props.permisos[0]?.id_permiso || '', tipo_asignacion: 'permitir', ref_sucursal: '', motivo: '' });
+const asignacion_area = useForm({ ref_usuario: '', ref_sucursal: '', areas_preparacion: [] });
+const areasAsignables = computed(() => props.areas_preparacion.filter((area) => String(area.ref_sucursal) === String(asignacion_area.ref_sucursal)));
 
-const guardarNegocio = () => negocio.put('/administracion/negocio', { preserveScroll: true });
+const guardarNegocio = () => negocio.transform((datos) => ({ ...datos, direccion_ticket: datos.direccion_ticket?.trim() || null, pie_ticket: datos.pie_ticket?.trim() || null, _method: 'PUT' })).post('/administracion/negocio', { preserveScroll: true, forceFormData: true, onSuccess: () => abrirModal('Configuración guardada', 'La identidad, datos de ticket y apariencia del negocio fueron actualizados.', 'exito'), onError: (errores) => abrirModal('No fue posible guardar', Object.values(errores).flat().join(' '), 'error') });
 const nuevaSucursal = () => { editandoSucursal.value = null; sucursal.reset(); sucursal.activo = true; sucursal.modulos = props.modulos.map(({ id_modulo }) => id_modulo); };
 const editarSucursal = (item) => { editandoSucursal.value = item.id_sucursal; Object.assign(sucursal, { ...item, telefono: item.telefono || '', correo: item.correo || '', direccion: item.direccion || '', modulos: [...item.modulos] }); };
 const guardarSucursal = () => editandoSucursal.value ? sucursal.put(`/administracion/sucursales/${editandoSucursal.value}`, { preserveScroll: true, onSuccess: nuevaSucursal }) : sucursal.post('/administracion/sucursales', { preserveScroll: true, onSuccess: nuevaSucursal });
 const guardarUsuario = () => usuario.post('/administracion/usuarios', { preserveScroll: true, onSuccess: () => usuario.reset('nombre', 'nombre_usuario', 'correo', 'contrasena', 'contrasena_confirmation', 'pin', 'pin_confirmation') });
 const guardarPermiso = () => permiso.transform((datos) => ({ ...datos, ref_sucursal: datos.ref_sucursal || null })).put(`/administracion/usuarios/${permiso.ref_usuario}/permisos`, { preserveScroll: true, onSuccess: () => permiso.reset('ref_usuario', 'ref_sucursal', 'motivo') });
+const cargarAreasUsuario = () => { const item = props.usuarios.find((usuarioActual) => String(usuarioActual.id_usuario) === String(asignacion_area.ref_usuario)); asignacion_area.ref_sucursal = item?.sucursal?.id_sucursal || ''; asignacion_area.areas_preparacion = (item?.areas_preparacion || []).filter((area) => String(area.ref_sucursal) === String(asignacion_area.ref_sucursal)).map((area) => area.id_area_preparacion); };
+const guardarAreasPreparacion = () => asignacion_area.put(`/administracion/usuarios/${asignacion_area.ref_usuario}/areas-preparacion`, { preserveScroll: true, onSuccess: () => asignacion_area.reset('ref_usuario', 'ref_sucursal', 'areas_preparacion') });
 </script>
 
 <template>
     <Head title="Administración" />
-    <main class="savix-pos-administracion">
+    <main class="savix-pos-administracion"><ModalAviso :abierto="modal.abierto" :titulo="modal.titulo" :mensaje="modal.mensaje" :tipo="modal.tipo" @cerrar="modal.abierto = false" />
         <header class="savix-pos-administracion__encabezado">
             <div class="savix-pos-marca"><img v-if="props.negocio.logo_url" :src="props.negocio.logo_url" class="savix-pos-marca__logo" alt="Logo del negocio"><span v-else class="savix-pos-marca__sello">SI</span><div><p class="savix-pos-marca__nombre">{{ negocio.nombre_comercial }}</p><p class="savix-pos-marca__subtitulo">Administración de la operación</p></div></div>
             <Link class="savix-pos-boton savix-pos-boton--secundario" href="/panel">Volver al panel</Link>
@@ -57,7 +65,7 @@ const guardarPermiso = () => permiso.transform((datos) => ({ ...datos, ref_sucur
                         <label class="savix-pos-campo"><span>Color de acento</span><input v-model="negocio.color_acento" :disabled="!puede.configurar_negocio" type="color"><small>{{ negocio.color_acento }}</small></label>
                         <label class="savix-pos-campo"><span>Tema</span><select v-model="negocio.tema_predeterminado" :disabled="!puede.configurar_negocio"><option value="sistema">Dispositivo</option><option value="claro">Claro</option><option value="oscuro">Oscuro</option></select></label>
                     </div>
-                    <div class="savix-pos-seccion__subtitulo"><h2>Ticket e impuestos</h2><p>Los precios de catálogo son importes finales.</p></div>
+                    <div class="savix-pos-seccion__subtitulo"><h2>Ticket e impuestos</h2><p>Los precios de catálogo son importes finales.</p><p v-if="negocio.errors.direccion_ticket || negocio.errors.pie_ticket" class="savix-pos-error">{{ negocio.errors.direccion_ticket || negocio.errors.pie_ticket }}</p></div>
                     <div class="savix-pos-cuadricula savix-pos-cuadricula--dos">
                         <label class="savix-pos-campo"><span>IVA porcentual</span><input v-model="negocio.porcentaje_iva" :disabled="!puede.configurar_negocio" type="number" min="0" max="99.99" step="0.01"></label>
                         <label class="savix-pos-campo"><span>Ancho de ticket</span><select v-model="negocio.ancho_ticket_mm" :disabled="!puede.configurar_negocio"><option :value="58">58 mm</option><option :value="80">80 mm</option></select></label>
@@ -81,8 +89,9 @@ const guardarPermiso = () => permiso.transform((datos) => ({ ...datos, ref_sucur
 
                 <section v-if="seccion === 'equipo'" class="savix-pos-seccion">
                     <div class="savix-pos-seccion__titulo"><p class="savix-pos-eyebrow">EQUIPO</p><h1>Accesos para cada función</h1><p>Todo usuario inicia asignado a una sucursal y a un rol.</p></div>
-                    <div class="savix-pos-lista"><article v-for="item in usuarios" :key="item.id_usuario" class="savix-pos-lista__fila"><div><strong>{{ item.nombre }}</strong><span>@{{ item.nombre_usuario }} · {{ item.sucursal?.nombre || 'Sin sucursal' }}</span></div><div class="savix-pos-etiquetas"><span v-for="rol in item.roles" :key="rol">{{ rol }}</span><span :class="{ 'savix-pos-etiqueta--inactiva': !item.activo }">{{ item.activo ? 'Activo' : 'Inactivo' }}</span></div></article></div>
+                    <div class="savix-pos-lista"><article v-for="item in usuarios" :key="item.id_usuario" class="savix-pos-lista__fila"><div><strong>{{ item.nombre }}</strong><span>@{{ item.nombre_usuario }} · {{ item.sucursal?.nombre || 'Sin sucursal' }}</span></div><div class="savix-pos-etiquetas"><span v-for="rol in item.roles" :key="rol">{{ rol }}</span><span v-for="area in item.areas_preparacion" :key="area.id_area_preparacion">{{ area.nombre }}</span><span :class="{ 'savix-pos-etiqueta--inactiva': !item.activo }">{{ item.activo ? 'Activo' : 'Inactivo' }}</span></div></article></div>
                     <form v-if="puede.gestionar_usuarios" class="savix-pos-formulario-interno" @submit.prevent="guardarUsuario"><div class="savix-pos-seccion__subtitulo"><h2>Nuevo usuario</h2><p>Entrega la contraseña y PIN de forma segura.</p></div><div class="savix-pos-cuadricula savix-pos-cuadricula--dos"><label class="savix-pos-campo"><span>Nombre completo</span><input v-model="usuario.nombre" required></label><label class="savix-pos-campo"><span>Usuario</span><input v-model="usuario.nombre_usuario" required></label><label class="savix-pos-campo"><span>Correo, opcional</span><input v-model="usuario.correo" type="email"></label><label class="savix-pos-campo"><span>Sucursal</span><select v-model="usuario.ref_sucursal"><option v-for="item in sucursales.filter((item) => item.activo)" :key="item.id_sucursal" :value="item.id_sucursal">{{ item.nombre }}</option></select></label><label class="savix-pos-campo"><span>Rol inicial</span><select v-model="usuario.ref_rol"><option v-for="rol in roles" :key="rol.id_rol" :value="rol.id_rol">{{ rol.nombre }}</option></select></label><label class="savix-pos-campo"><span>Contraseña</span><input v-model="usuario.contrasena" type="password" required></label><label class="savix-pos-campo"><span>Confirmar contraseña</span><input v-model="usuario.contrasena_confirmation" type="password" required></label><label class="savix-pos-campo"><span>PIN de 4 dígitos</span><input v-model="usuario.pin" type="password" inputmode="numeric" maxlength="4" required></label><label class="savix-pos-campo"><span>Confirmar PIN</span><input v-model="usuario.pin_confirmation" type="password" inputmode="numeric" maxlength="4" required></label></div><footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="usuario.processing">{{ usuario.processing ? 'Creando…' : 'Crear usuario' }}</button></footer></form>
+                    <form v-if="puede.gestionar_usuarios" class="savix-pos-formulario-interno" @submit.prevent="guardarAreasPreparacion"><div class="savix-pos-seccion__subtitulo"><h2>Áreas de preparación</h2><p>Limita lo que cada integrante de cocina o barra puede consultar y actualizar.</p></div><div class="savix-pos-cuadricula savix-pos-cuadricula--dos"><label class="savix-pos-campo"><span>Usuario</span><select v-model="asignacion_area.ref_usuario" required @change="cargarAreasUsuario"><option disabled value="">Selecciona un usuario</option><option v-for="item in usuarios.filter((item) => item.sucursal)" :key="item.id_usuario" :value="item.id_usuario">{{ item.nombre }} · @{{ item.nombre_usuario }}</option></select></label><label class="savix-pos-campo"><span>Sucursal asignada</span><input :value="sucursales.find((item) => String(item.id_sucursal) === String(asignacion_area.ref_sucursal))?.nombre || 'Selecciona un usuario'" disabled></label></div><fieldset v-if="asignacion_area.ref_sucursal" class="savix-pos-seleccion"><legend>Áreas permitidas</legend><label v-for="area in areasAsignables" :key="area.id_area_preparacion"><input v-model="asignacion_area.areas_preparacion" :value="area.id_area_preparacion" type="checkbox"> {{ area.nombre }}<span v-if="area.codigo"> · {{ area.codigo }}</span></label><p v-if="!areasAsignables.length" class="savix-pos-vacio">Esta sucursal aún no tiene áreas configuradas.</p></fieldset><footer class="savix-pos-seccion__acciones"><button class="savix-pos-boton savix-pos-boton--primario" :disabled="asignacion_area.processing || !asignacion_area.ref_usuario">{{ asignacion_area.processing ? 'Guardando…' : 'Guardar áreas' }}</button></footer></form>
                 </section>
 
                 <section v-if="seccion === 'permisos'" class="savix-pos-seccion">

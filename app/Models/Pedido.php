@@ -11,10 +11,10 @@ class Pedido extends Model
     public const CREATED_AT = 'creado_en';
     public const UPDATED_AT = 'actualizado_en';
 
-    protected $fillable = ['ref_sucursal', 'ref_mesa', 'ref_usuario_apertura', 'tipo_servicio', 'estado', 'referencia_mostrador', 'nota', 'abierto_en', 'cerrado_en', 'activo'];
+    protected $fillable = ['ref_sucursal', 'ref_mesa', 'ref_usuario_apertura', 'tipo_servicio', 'estado', 'referencia_mostrador', 'nota', 'folio_ticket', 'abierto_en', 'cerrado_en', 'emitido_ticket_en', 'activo'];
 
     protected function casts(): array
     {
-        return ['abierto_en' => 'datetime', 'cerrado_en' => 'datetime', 'activo' => 'boolean'];
+        return ['abierto_en' => 'datetime', 'cerrado_en' => 'datetime', 'emitido_ticket_en' => 'datetime', 'activo' => 'boolean'];
     }
 }

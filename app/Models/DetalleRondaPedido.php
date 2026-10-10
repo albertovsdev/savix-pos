@@ -11,7 +11,7 @@ class DetalleRondaPedido extends Model
     public const CREATED_AT = 'creado_en';
     public const UPDATED_AT = 'actualizado_en';
 
-    protected $fillable = ['ref_ronda_pedido', 'ref_producto', 'cantidad', 'nombre_producto', 'precio_unitario', 'importe_extras', 'importe_total', 'nota_preparacion', 'estado', 'activo'];
+    protected $fillable = ['ref_ronda_pedido', 'ref_parte_cuenta_pedido', 'ref_producto', 'cantidad', 'nombre_producto', 'precio_unitario', 'importe_extras', 'importe_total', 'nota_preparacion', 'estado', 'activo'];
 
     protected function casts(): array
     {
