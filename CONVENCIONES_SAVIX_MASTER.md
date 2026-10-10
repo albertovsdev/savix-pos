@@ -1,5 +1,12 @@
 # CONVENCIONES MAESTRAS — SAVIX INDUSTRIES
 
+## Perfil aplicado: SAVIX POS
+
+- `database_language: spanish`.
+- Código de negocio, rutas, esquema, copy visible y documentación en español.
+- Tablas operativas plurales; llaves `id_entidad`; referencias `ref_entidad`; bajas lógicas con `activo`; auditoría temporal con `creado_en` y `actualizado_en`.
+- Laravel, Vue e Inertia pueden conservar nombres propios del framework cuando sea necesario, sin mezclar inglés en los conceptos de negocio.
+
 **Documento:** CONVENCIONES_SAVIX_MASTER  
 **Empresa:** SAVIX INDUSTRIES  
 **Uso:** Proyectos web, móviles, backend, base de datos, documentación técnica y trabajo asistido con IA.  

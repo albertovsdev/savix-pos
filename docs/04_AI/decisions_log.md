@@ -23,3 +23,19 @@
 - Roles iniciales: dev, admin, gerente, caja, mesero, cocina, barra e inventario.
 - Los folios de venta usarán una clave por sucursal, con formato objetivo `SX-SM-0001`.
 - El catálogo se captura manualmente en el MVP. La importación masiva se resolverá después con plantilla y mapeo.
+
+## 2026-09-21 a 2026-10-07 — Decisiones de operación, inventario y compras
+
+- El pedido se compone de rondas: una ronda confirmada llega una sola vez a las áreas de preparación y las posteriores solo llevan productos nuevos.
+- Cocina, barra y cualquier área de preparación son configurables por sucursal; los usuarios de preparación pueden limitarse a áreas asignadas.
+- El inventario se descuenta al confirmar la ronda, no al cobrar. Los tipos admitidos son sin control, unidad, receta y mixto.
+- Un modificador que elimina ingrediente evita su consumo; uno que agrega ingrediente aumenta el consumo y puede aumentar precio.
+- La cancelación requiere permiso, motivo y PIN de autorización. Si no se preparó, se revierten las salidas de inventario; si se preparó, se registra merma.
+- Las subcuentas pueden nombrarse y recibir productos individuales. Las partes sin productos se cierran automáticamente al liquidar las partes con consumo.
+- Los pagos aceptados en el MVP son efectivo, tarjeta o combinación exacta de ambos. El ticket se emite al cierre total del pedido.
+- El ticket se imprime mediante navegador y se adapta a 58 mm u 80 mm. La URL del logo debe ser relativa a `/storage` para funcionar en localhost, IP de red y producción.
+- Los ajustes manuales de inventario requieren existencia final y motivo; generan movimiento firmado y bitácora.
+- Proveedores pertenecen al negocio; las compras pertenecen a una sucursal y pueden no tener proveedor. Cada renglón de compra incrementa existencias y genera `entrada_compra`.
+- Los costos de compra se capturan como importes finales; el sistema almacena subtotal e IVA desglosados conforme a la configuración del negocio.
+- Los reportes iniciales son por sucursal y periodo: ventas cerradas, pagos, ticket promedio, compras, productos vendidos y alertas de mínimos.
+- La cancelación de compras, edición/baja de proveedores, corte de caja, descuentos, reaperturas, consolidado y PWA permanecen fuera del alcance implementado.

@@ -1,3 +1,35 @@
+# SAVIX POS
+
+Punto de venta web configurable para restaurantes, bares, negocios de alimentos y mostrador. Cada instalación corresponde a un negocio y puede operar varias sucursales con catálogo global y configuración independiente por sucursal.
+
+## Estado actual
+
+Están implementadas las fases funcionales de administración, catálogo, operación, preparación, caja, tickets, inventario, proveedores, compras y reportes básicos. La base local tiene aplicada la migración `2026_09_30_000004_crear_proveedores_compras_y_permisos`.
+
+La suite vigente tiene 25 pruebas y 339 verificaciones aprobadas. Los siguientes frentes son la pasada visual premium, reversión de compras, edición/baja de proveedores, corte de caja, descuentos, reapertura y reportes consolidados.
+
+## Inicio local
+
+Consulta [uso.md](uso.md) para instalación y actualizaciones. Para ejecutar en desarrollo:
+
+```powershell
+cd C:\proyectos\savix-pos
+C:\xampp\php\php.exe artisan serve --host=127.0.0.1 --port=8000
+```
+
+Abre `http://127.0.0.1:8000`.
+
+## Documentación
+
+- [Plan de implementación](docs/01_PRODUCTO/PLAN_IMPLEMENTACION.md)
+- [Contexto para Codex](docs/04_AI/CODEX_CONTEXT_SAVIX_POS.md)
+- [Tareas y estado](docs/04_AI/implementation_tasks.md)
+- [Registro de decisiones](docs/04_AI/decisions_log.md)
+- [Producto](PRODUCT.md)
+- [Diseño](DESIGN.md)
+
+> El contenido estándar de Laravel que sigue se conserva únicamente como referencia del framework; la documentación operativa del proyecto es la indicada arriba.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

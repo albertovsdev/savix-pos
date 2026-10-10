@@ -87,6 +87,7 @@ composer install
 C:\xampp\php\php.exe artisan key:generate
 C:\xampp\php\php.exe artisan migrate --force
 C:\xampp\php\php.exe artisan db:seed --force
+C:\xampp\php\php.exe artisan storage:link
 npm ci
 npm run build
 ```
@@ -98,6 +99,8 @@ Como alternativa, después de crear y configurar `.env`, puedes ejecutar:
 ```powershell
 composer run setup
 ```
+
+Después ejecuta también `C:\xampp\php\php.exe artisan storage:link`. Este enlace público es necesario para mostrar logos del negocio y otros archivos almacenados en `storage/app/public`.
 
 ## 6. Iniciar SAVIX POS
 
@@ -156,6 +159,7 @@ npm ci
 npm run build
 C:\xampp\php\php.exe artisan migrate --force
 C:\xampp\php\php.exe artisan db:seed --force
+C:\xampp\php\php.exe artisan storage:link
 C:\xampp\php\php.exe artisan optimize:clear
 ```
 
@@ -176,6 +180,8 @@ No uses `migrate:fresh`, `migrate:reset` ni `migrate:rollback` en una instalaci�
 
 ## 10. Estado funcional actual
 
-La instalación actual permite configurar negocio, sucursales, usuarios, permisos, catálogo, insumos, recetas, extras y modificadores. También permite abrir pedidos de mesa o mostrador, crear rondas independientes y enviarlas a sus áreas de preparación configuradas.
+La instalación actual permite configurar negocio, sucursales, usuarios, permisos, identidad visual y ticket. Incluye catálogo global por sucursal, insumos, recetas, extras, modificadores, mesas, mostrador, rondas, preparación por áreas, cancelaciones autorizadas, mermas, división de cuenta, pagos mixtos, tickets imprimibles, inventario, proveedores, compras y reportes básicos.
 
-La pantalla de cocina/barra, cobros, tickets definitivos e inventario operativo continúan en desarrollo; no deben considerarse listos para una operación comercial todavía.
+Después de una actualización, ejecuta siempre las migraciones, semillas y compilación indicadas en la sección 8. La migración de compras agrega proveedores, compras, detalles de compra, permisos de compras y el movimiento de inventario `entrada_compra`.
+
+No uses `migrate:fresh`, `migrate:reset` ni `migrate:rollback` en una instalación con datos reales. Las compras registradas aún no tienen reversión desde interfaz; corrige una captura errónea con un ajuste de inventario documentado hasta que se implemente esa función.

@@ -4,6 +4,21 @@
 
 Construir un punto de venta web configurable por negocio y escalable por sucursales. El sistema debe cubrir operación de mostrador y restaurante, preparación por áreas, inventario unitario o por receta, pagos divididos y personalización de identidad y tickets.
 
+## Estado de ejecución al 2026-10-07
+
+| Fase | Estado | Alcance real |
+| --- | --- | --- |
+| 0 | Completada | Decisiones de negocio, piloto MEDEL, stack, idioma y modelo por instalación. |
+| 1 | Completada | Acceso, PIN, roles, permisos, auditoría, negocio, sucursales, apariencia y ticket. |
+| 2 | Completada | Catálogo por sucursal, insumos, recetas, extras y modificadores. |
+| 3 | Completada | Mesas, mostrador, borradores, rondas y envío a preparación. |
+| 4 | Completada | Pantallas por área, cancelaciones, merma e inventario por venta. |
+| 5 | Implementada en núcleo | Subcuentas, pagos mixtos, cierre y ticket. Pendientes: descuentos, reapertura y corte de caja. |
+| 6 | Implementada en núcleo | Ajustes, proveedores, compras y reportes básicos por sucursal. Pendientes: consolidado, exportaciones, auditoría ampliada y piloto manual completo. |
+| 7 | Pendiente | PWA, caché, cola local, sincronización y operación sin conexión. |
+
+La siguiente entrega recomendada antes de iniciar PWA es una pasada visual premium y la finalización de controles administrativos pendientes. La tabla anterior prevalece sobre cualquier redacción histórica del plan.
+
 ## Decisiones confirmadas
 
 - Una instalación corresponde a un solo negocio. No habrá cambio entre negocios desde una misma cuenta operativa.
@@ -39,7 +54,7 @@ Pedido
 ### Alcance
 
 - Definir el nombre comercial del producto, URL inicial y texto de marca.
-- Confirmar `database_language`. La recomendación técnica es `english` para el esquema y código, manteniendo interfaz y documentación en español; esto reduce fricción con Laravel. Si se elige español, se respetarán `usuarios`, `ref_sucursal`, `creado_en` y demás convenciones SAVIX de forma consistente.
+- Confirmar `database_language`. Decisión tomada: `spanish` para esquema, código de negocio, rutas, interfaz y documentación; se respetan `usuarios`, `ref_sucursal`, `creado_en` y demás convenciones SAVIX de forma consistente.
 - Preparar diagrama de entidades y estados de pedido antes de crear migraciones.
 - Definir formatos de ticket: 58 mm y 80 mm.
 - Confirmar una impresora térmica de prueba y el dispositivo inicial: computadora, Android o iPad.

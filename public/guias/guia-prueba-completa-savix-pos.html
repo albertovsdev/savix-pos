@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guía práctica de prueba completa | SAVIX POS</title>
+  <style>
+    :root { --tinta:#1d1c25; --suave:#625f6e; --fondo:#f6f5f1; --panel:#fff; --marca:#6257d9; --linea:#ddd9ea; --ok:#16805f; --alerta:#a75b10; --radio:14px; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--tinta); background:var(--fondo); font:15px/1.55 Arial, Helvetica, sans-serif; }
+    main { width:min(100%,920px); margin:auto; padding:42px 24px 72px; } .portada { padding:36px; border-radius:20px; color:white; background:#26233d; } .marca { margin:0 0 14px; color:#c8c2ff; font-size:12px; font-weight:800; letter-spacing:.12em; } h1 { max-width:16ch; margin:0; font-size:42px; line-height:1.05; letter-spacing:-.04em; } .portada p:last-child { max-width:58ch; margin:18px 0 0; color:#e3e1f3; }
+    .acciones { display:flex; flex-wrap:wrap; gap:10px; margin:20px 0 0; } button,.enlace { display:inline-block; border:0; border-radius:9px; padding:11px 15px; color:white; background:var(--marca); font:inherit; font-weight:700; text-decoration:none; cursor:pointer; } .enlace.secundario { color:var(--tinta); background:white; }
+    .nota { margin:28px 0; border-left:4px solid var(--marca); padding:14px 16px; background:#eeecff; } .nota strong { color:#423a9d; } h2 { margin:42px 0 12px; font-size:25px; line-height:1.15; letter-spacing:-.025em; } h3 { margin:0 0 6px; font-size:17px; } p { margin:8px 0; } .pasos { display:grid; gap:12px; counter-reset:paso; padding:0; list-style:none; } .pasos > li { position:relative; padding:20px 22px 20px 72px; border:1px solid var(--linea); border-radius:var(--radio); background:var(--panel); } .pasos > li::before { position:absolute; top:20px; left:20px; display:grid; width:32px; height:32px; place-items:center; border-radius:50%; color:white; background:var(--marca); content:counter(paso); counter-increment:paso; font-weight:800; } ul { margin:8px 0 0; padding-left:20px; } .check { color:var(--ok); font-weight:800; } .cuidado { color:var(--alerta); font-weight:800; } .flujo { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; } .flujo span { border-radius:7px; padding:7px 10px; background:#eceaf5; font-size:13px; font-weight:700; } .dos { display:grid; grid-template-columns:1fr 1fr; gap:14px; } .tarjeta { padding:18px; border:1px solid var(--linea); border-radius:var(--radio); background:var(--panel); } code { overflow-wrap:anywhere; border-radius:5px; padding:2px 5px; background:#eceaf5; font-family:Consolas,monospace; font-size:.9em; }
+    footer { margin-top:48px; padding-top:18px; border-top:1px solid var(--linea); color:var(--suave); font-size:13px; }
+    @media (max-width:620px) { main { padding:20px 14px 50px; } .portada { padding:28px 22px; } h1 { font-size:35px; } .dos { grid-template-columns:1fr; } .pasos > li { padding-left:64px; } .pasos > li::before { left:17px; } }
+    @media print { @page { size:A4; margin:13mm; } body { background:white; font-size:10.4pt; } main { width:auto; padding:0; } .portada { padding:18mm; } .acciones { display:none; } h2 { margin-top:24px; page-break-after:avoid; } .pasos { gap:8px; } .pasos > li { padding:13px 15px 13px 54px; break-inside:avoid; } .pasos > li::before { top:13px; left:14px; width:27px; height:27px; } .tarjeta { break-inside:avoid; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="portada">
+      <p class="marca">SAVIX POS · GUÍA DE PRUEBA OPERATIVA</p>
+      <h1>Una prueba completa, de apertura a reporte.</h1>
+      <p>Recorre un turno corto con una venta de mesa, una compra, inventario, preparación, cobro y revisión de resultados. Usa datos de prueba; no necesitas conocer detalles técnicos.</p>
+      <div class="acciones"><button onclick="window.print()">Imprimir o guardar como PDF</button><a class="enlace secundario" href="#inicio">Empezar la guía</a></div>
+    </section>
+
+    <aside class="nota"><strong>Antes de empezar.</strong> Inicia sesión con una cuenta administradora. Si es una instalación nueva, completa primero el asistente inicial con negocio, sucursal y usuario administrador. Para esta práctica usa una sucursal y un producto simple, por ejemplo una bebida.</aside>
+
+    <section id="inicio">
+      <h2>Ruta rápida del ejercicio</h2>
+      <div class="flujo"><span>Administración</span><span>Catálogo</span><span>Compra</span><span>Inventario</span><span>Operación</span><span>Preparación</span><span>Caja</span><span>Reporte</span></div>
+    </section>
+
+    <section>
+      <h2>Prueba completa paso a paso</h2>
+      <ol class="pasos">
+        <li><h3>Confirma tu negocio y sucursal</h3><p>En el <strong>Panel</strong>, abre <strong>Administración</strong>. Revisa <strong>Negocio y ticket</strong>: nombre comercial, IVA, tema y ancho de ticket. En <strong>Sucursales</strong>, verifica que exista una sucursal activa, por ejemplo “Matriz”. Guarda solo si cambiaste algo.</p></li>
+        <li><h3>Prepara equipo y permisos mínimos</h3><p>En <strong>Administración → Equipo</strong>, confirma que el usuario de prueba tenga sucursal asignada. Para una prueba completa, usa el administrador o asigna permisos de catálogo, operación, preparación, caja, inventario, compras y reportes.</p><p class="cuidado">Si un módulo no aparece en el panel, normalmente es porque falta el permiso o el módulo no está habilitado para esa sucursal.</p></li>
+        <li><h3>Crea un área de preparación</h3><p>Abre <strong>Catálogo → Áreas de preparación</strong>. Crea “Cocina” o “Barra”. Esta área recibirá los productos enviados desde una ronda. Si usarás otra cuenta para preparar, asígnale esa área desde Administración.</p></li>
+        <li><h3>Registra un producto para vender</h3><p>En <strong>Catálogo → Productos</strong>, crea “Limonada de prueba”. Elige un precio de venta, por ejemplo $45.00. Para practicar inventario, selecciona <strong>Por unidad</strong>, captura existencia inicial 0 y mínimo 2. Déjalo disponible para la sucursal y envíalo al área “Barra” o “Cocina”.</p><p class="check">Resultado esperado: el producto aparece como disponible en la lista.</p></li>
+        <li><h3>Registra un proveedor y una compra</h3><p>Abre <strong>Compras</strong>. Primero crea un proveedor, por ejemplo “Proveedor de prueba”. Después registra una compra: selecciona ese proveedor, el producto “Limonada de prueba”, cantidad 12 y costo unitario $18.00. Guarda la compra.</p><p class="check">Resultado esperado: la compra aparece en “Últimas compras” y la existencia aumenta a 12.</p></li>
+        <li><h3>Verifica la entrada en inventario</h3><p>Abre <strong>Inventario</strong>. Busca el producto y confirma que muestra 12 unidades. En “Últimos movimientos” debe aparecer una <strong>entrada por compra</strong>. No hagas ajustes todavía; esta revisión confirma que la compra afectó existencias.</p></li>
+        <li><h3>Abre una mesa y arma una ronda</h3><p>En <strong>Operación</strong>, crea “Mesa 1” si no existe y ábrela. En “Agregar a ronda”, selecciona la limonada, cantidad 2 y una nota opcional, por ejemplo “sin hielo”. Agrega el producto y revisa el borrador.</p><p>Cuando esté correcto, pulsa <strong>Confirmar y enviar ronda</strong>. La ronda deja de ser editable y pasa al área configurada.</p></li>
+        <li><h3>Avanza la preparación</h3><p>Abre <strong>Preparación</strong> y selecciona la sucursal y el área. La limonada debe aparecer como pendiente. Pulsa <strong>Iniciar preparación</strong>, después <strong>Marcar listo</strong> y finalmente <strong>Entregar</strong>.</p><p class="check">Resultado esperado: se reconoce el ciclo completo de cocina o barra y la venta conserva su ronda enviada.</p></li>
+        <li><h3>Cobra la cuenta</h3><p>Ve a <strong>Caja</strong>, abre “Mesa 1” y usa la parte general o crea una parte con el nombre “Cliente prueba”. Confirma que los productos estén asignados a la parte. Pulsa <strong>Cobrar parte</strong>, elige efectivo o tarjeta y captura exactamente $90.00.</p><p>Confirma el cobro. Si es efectivo, registra el importe exacto para esta práctica. Al pagarse todas las partes, la mesa se libera y se genera el ticket de navegador.</p></li>
+        <li><h3>Revisa inventario y el reporte</h3><p>Regresa a <strong>Inventario</strong>: la existencia debe quedar en 10 y debe aparecer una salida por venta. Finalmente abre <strong>Reportes</strong>, usa la fecha de hoy y pulsa <strong>Actualizar reporte</strong>. Debes ver una venta cerrada, venta total de $90.00, la forma de pago y la compra registrada.</p></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Pruebas rápidas opcionales</h2>
+      <div class="dos">
+        <article class="tarjeta"><h3>Cuenta dividida</h3><p>Abre otra mesa, agrega dos productos y en Caja crea “Ana” y “Luis”. Asigna un producto a cada parte y cobra cada una por separado.</p></article>
+        <article class="tarjeta"><h3>Cancelación autorizada</h3><p>Envía un producto a preparación y usa “Cancelar producto enviado” en Operación. Captura motivo y las credenciales del autorizador. Indica si ya fue preparado.</p></article>
+        <article class="tarjeta"><h3>Ajuste de inventario</h3><p>En Inventario, selecciona un recurso y registra una nueva existencia física con un motivo claro. Revisa el movimiento generado.</p></article>
+        <article class="tarjeta"><h3>Ticket</h3><p>Tras cerrar una cuenta, abre o imprime el ticket. Confirma que muestra el logo, datos del negocio, impuestos y el formato de 58 u 80 mm configurado.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Acceso desde otra computadora</h2>
+      <ol class="pasos">
+        <li><h3>Prepara la aplicación para compartir</h3><p>Primero ejecuta <code>npm run build</code> y deja de usar <code>npm run dev</code>. Después inicia Laravel con <code>C:\xampp\php\php.exe artisan serve --host=0.0.0.0 --port=8000</code>. Así otras computadoras recibirán los archivos compilados desde la misma URL.</p></li>
+        <li><h3>Obtén la IP local de esta computadora</h3><p>En PowerShell ejecuta <code>ipconfig</code> y localiza la dirección IPv4 de la red Wi-Fi o Ethernet, por ejemplo <code>192.168.1.25</code>.</p></li>
+        <li><h3>Comparte la URL</h3><p>Desde otra computadora conectada a la misma red abre <code>http://192.168.1.25:8000</code>. Esta guía queda disponible directamente en <code>http://192.168.1.25:8000/guias/guia-prueba-completa-savix-pos.html</code>.</p></li>
+      </ol>
+      <aside class="nota"><strong>Importante:</strong> comparte solo dentro de una red confiable. Si Windows pregunta por el firewall, permite el acceso únicamente en redes privadas. No abras el puerto a Internet pública.</aside>
+    </section>
+    <footer>Guía de prueba operativa de SAVIX POS. Para crear el PDF, abre esta página y usa “Imprimir o guardar como PDF”.</footer>
+  </main>
+</body>
+</html>
