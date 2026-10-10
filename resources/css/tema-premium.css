@@ -155,3 +155,85 @@ button { -webkit-tap-highlight-color: transparent; }
     .savix-pos-panel__contenido h1 { font-size: 42px; }
     .savix-pos-inicial__formulario section h1 { font-size: 38px; }
 }
+
+/* Prioridades operativas: los accesos frecuentes se leen como destinos, no como una barra saturada. */
+:root { color-scheme: light; }
+:root[data-tema='oscuro'] { color-scheme: dark; }
+
+::selection { color: oklch(0.99 0.003 285); background: var(--savix-pos-marca); }
+a { color: inherit; }
+
+.savix-pos-panel__usuario > a { display: none; }
+.savix-pos-panel__usuario { gap: 12px; }
+.savix-pos-panel__usuario > span { max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.savix-pos-panel__accesos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: min(100%, 850px);
+    margin: 0 0 28px;
+}
+.savix-pos-acceso-modulo {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 104px;
+    border: 1px solid var(--savix-pos-borde);
+    border-radius: var(--savix-pos-radial);
+    padding: 18px;
+    color: var(--savix-pos-texto);
+    background: var(--savix-pos-superficie);
+    box-shadow: 0 1px 0 oklch(1 0 0 / .035);
+    text-decoration: none;
+    transition: transform var(--savix-pos-transicion-rapida), border-color var(--savix-pos-transicion-rapida), box-shadow var(--savix-pos-transicion-rapida), background var(--savix-pos-transicion-rapida);
+}
+.savix-pos-acceso-modulo:hover {
+    border-color: color-mix(in oklch, var(--savix-pos-marca) 42%, var(--savix-pos-borde));
+    background: color-mix(in oklch, var(--savix-pos-superficie) 92%, var(--savix-pos-marca-suave));
+    box-shadow: var(--savix-pos-sombra-suave);
+    transform: translateY(-2px);
+}
+.savix-pos-acceso-modulo:active { transform: translateY(0) scale(.99); }
+.savix-pos-acceso-modulo:focus-visible { outline: 3px solid var(--savix-pos-marca-media); outline-offset: 3px; }
+.savix-pos-acceso-modulo__marca {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border-radius: 11px;
+    color: var(--savix-pos-marca);
+    background: var(--savix-pos-marca-suave);
+    font-size: 14px;
+    font-weight: 800;
+}
+.savix-pos-acceso-modulo__contenido { display: grid; min-width: 0; gap: 4px; }
+.savix-pos-acceso-modulo__contenido strong { font-size: 16px; letter-spacing: -.015em; }
+.savix-pos-acceso-modulo__contenido small { color: var(--savix-pos-texto-secundario); font-size: 12px; line-height: 1.45; }
+.savix-pos-acceso-modulo__flecha { color: var(--savix-pos-marca); font-size: 22px; line-height: 1; transition: transform var(--savix-pos-transicion-rapida); }
+.savix-pos-acceso-modulo:hover .savix-pos-acceso-modulo__flecha { transform: translateX(3px); }
+
+.savix-pos-seccion__acciones { flex-wrap: wrap; gap: 10px; }
+.savix-pos-lista__fila { position: relative; transition: background var(--savix-pos-transicion-rapida), padding-inline var(--savix-pos-transicion-rapida); }
+.savix-pos-lista__fila:focus-within { z-index: 1; box-shadow: inset 3px 0 0 var(--savix-pos-marca); }
+.savix-pos-lista__fila > strong, .savix-pos-lista__fila > div > strong { font-variant-numeric: tabular-nums; }
+.savix-pos-notificacion { box-shadow: 0 8px 20px color-mix(in oklch, var(--savix-pos-exito) 10%, transparent); }
+
+.savix-pos-preparacion__tarjeta { border-left: 3px solid var(--savix-pos-borde-fuerte); }
+.savix-pos-preparacion__tarjeta--pendiente { border-left-color: var(--savix-pos-advertencia); }
+.savix-pos-preparacion__tarjeta--en_preparacion { border-left-color: var(--savix-pos-informacion); background: color-mix(in oklch, var(--savix-pos-informacion) 5%, var(--savix-pos-superficie)); }
+.savix-pos-preparacion__tarjeta--listo { border-left-color: var(--savix-pos-exito); background: color-mix(in oklch, var(--savix-pos-exito) 6%, var(--savix-pos-superficie)); }
+
+@media (max-width: 760px) {
+    .savix-pos-panel__encabezado { align-items: center; flex-direction: row; padding: 16px 20px; }
+    .savix-pos-panel__usuario > span { display: none; }
+    .savix-pos-panel__contenido { padding-top: 44px; }
+    .savix-pos-panel__accesos { grid-template-columns: 1fr; gap: 9px; }
+    .savix-pos-acceso-modulo { min-height: 82px; padding: 15px; }
+    .savix-pos-acceso-modulo__contenido small { font-size: 11px; }
+    .savix-pos-seccion__acciones > .savix-pos-boton { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}

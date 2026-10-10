@@ -22,3 +22,9 @@ Producto de color restringido. SAVIX es la identidad inicial, pero cada negocio 
 - Radio de controles: 10px a 14px.
 - Estados semánticos obligatorios: éxito, advertencia, error, información y deshabilitado.
 - Navegación predecible, formularios sin modales innecesarios y layouts responsivos estructurales.
+
+## Estado actual de la interfaz
+
+La base visual está aplicada en panel, administración, catálogo, operación, preparación, caja, inventario, compras y reportes. El negocio puede definir colores, tema y logo; el ticket usa una ruta relativa para que el logo funcione en localhost, red local y hosting.
+
+Los modales se usan para autorizaciones y confirmaciones sensibles. La siguiente mejora visual es una pasada transversal premium: tipografía, contraste, densidad de información, navegación móvil, consistencia de botones/listados y estados vacíos. No se deben alterar flujos funcionales durante esa pasada sin pruebas.
